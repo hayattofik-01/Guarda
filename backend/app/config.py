@@ -42,10 +42,11 @@ class Settings(BaseSettings):
     # task was OOM-killed on a small free-tier box) is reclaimed and marked
     # failed so the UI never spins forever.
     scan_stuck_after_seconds: int = 60 * 6
-    # subfinder is bounded so onboarding completes fast; the default (non-`-all`)
-    # source set is lighter on memory, which matters on 512MB free instances.
-    subfinder_max_time: int = 60
-    subfinder_use_all_sources: bool = False
+    # subfinder streams subdomain strings (trivial memory) so it's safe to query
+    # all passive sources for rich, consistent discovery; the memory guard is the
+    # httpx host cap below, not the breadth of subdomain enumeration.
+    subfinder_max_time: int = 120
+    subfinder_use_all_sources: bool = True
     # nuclei is the heaviest step; bound it so onboarding scans stay snappy on
     # small (free-tier) instances. Caps targets and enforces an overall deadline
     # (partial results are kept if the deadline is hit).
