@@ -41,6 +41,7 @@ export default function ScanningPage() {
 
     let polling: ReturnType<typeof setInterval> | undefined;
     let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     function pushLog(line: string) {
       setLogs((l) => [...l.slice(-7), line]);
@@ -52,6 +53,16 @@ export default function ScanningPage() {
         const { scan_id } = await api.onboardingScan(pending as string);
         localStorage.removeItem("guarda_pending_domain");
         pushLog(`scan queued · id ${scan_id.slice(0, 8)}`);
+
+        // Safety net: always land on the report even if the free backend is
+        // slow to finish — the report renders whatever has been found so far.
+        const maxWait = setTimeout(() => {
+          if (!cancelled) {
+            if (polling) clearInterval(polling);
+            router.replace(`/reports/${scan_id}`);
+          }
+        }, 95_000);
+        timers.push(maxWait);
 
         polling = setInterval(async () => {
           if (cancelled) return;
@@ -85,6 +96,7 @@ export default function ScanningPage() {
       cancelled = true;
       if (polling) clearInterval(polling);
       clearInterval(stepTimer);
+      timers.forEach(clearTimeout);
     };
   }, [router]);
 
