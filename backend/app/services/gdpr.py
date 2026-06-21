@@ -209,6 +209,9 @@ def _cala_assessment(domain: str, findings: list[Finding]) -> dict | None:
     except (CalaError, Exception) as exc:  # noqa: BLE001 - best-effort, never break a report
         logger.warning("Cala GDPR assessment failed, using heuristic: %s", exc)
         return None
+    if result.get("isError"):
+        logger.warning("Cala returned an error, using heuristic: %s", _extract_text(result))
+        return None
     return _parse_assessment(_extract_text(result))
 
 

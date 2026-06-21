@@ -69,3 +69,34 @@ def test_assessment_falls_back_to_heuristic_when_cala_disabled(monkeypatch):
     monkeypatch.setattr(gdpr, "_cala_assessment", lambda *a, **k: None)
     result = gdpr.gdpr_assessment("acme.io", [], scan_id="scan-xyz")
     assert result["source"] == "heuristic"
+
+
+def test_cala_error_result_falls_back(monkeypatch):
+    class FakeClient:
+        enabled = True
+
+        def query(self, prompt):
+            err = "HTTP 402 {'detail': 'Insufficient balance'}"
+            return {"content": [{"type": "text", "text": err}], "isError": True}
+
+    monkeypatch.setattr(gdpr, "CalaClient", FakeClient)
+    assert gdpr._cala_assessment("acme.io", []) is None
+
+
+def test_cala_success_result_is_used(monkeypatch):
+    class FakeClient:
+        enabled = True
+
+        def query(self, prompt):
+            return {
+                "content": [{"type": "text", "text":
+                    '{"summary":"ok","checks":[{"article":"Art. 32",'
+                    '"requirement":"secure","passed":true,"detail":"fine"}]}'}],
+                "isError": False,
+            }
+
+    monkeypatch.setattr(gdpr, "CalaClient", FakeClient)
+    result = gdpr._cala_assessment("acme.io", [])
+    assert result is not None
+    assert result["source"] == "cala"
+    assert result["checks"][0]["article"] == "Art. 32"
