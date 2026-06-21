@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models import (
+    FindingCategory,
     FindingStatus,
+    Frequency,
     ScanStatus,
     Severity,
     TargetStatus,
@@ -34,7 +37,18 @@ class TargetCreate(BaseModel):
     address: str
     label: str | None = None
     verification_method: VerificationMethod = VerificationMethod.dns_txt
-    schedule: str | None = None
+    frequency: Frequency = Frequency.weekly
+    alert_email: EmailStr | None = None
+    alert_whatsapp: str | None = None
+    github_target: str | None = None
+
+
+class TargetUpdate(BaseModel):
+    label: str | None = None
+    frequency: Frequency | None = None
+    alert_email: EmailStr | None = None
+    alert_whatsapp: str | None = None
+    github_target: str | None = None
 
 
 class TargetOut(BaseModel):
@@ -46,7 +60,12 @@ class TargetOut(BaseModel):
     verification_method: VerificationMethod
     verification_token: str
     verified_at: datetime | None
-    schedule: str | None
+    frequency: Frequency
+    next_scan_at: datetime | None = None
+    last_scan_at: datetime | None = None
+    alert_email: str | None
+    alert_whatsapp: str | None
+    github_target: str | None
     created_at: datetime
 
 
@@ -63,11 +82,13 @@ class FindingOut(BaseModel):
     title: str
     description: str | None
     severity: Severity
+    category: FindingCategory
     status: FindingStatus
     host: str | None
     port: int | None
     service: str | None
     source: str
+    location: str | None
     cve_id: str | None
     cvss_score: float | None
     priority_score: float | None
@@ -93,6 +114,30 @@ class ScanOut(BaseModel):
 
 class ScanDetail(ScanOut):
     findings: list[FindingOut] = []
+    advice: str | None = None
+    advice_source: str | None = None
+    advice_status: str | None = None
+
+
+class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    filename: str
+    doc_type: str
+    status: ScanStatus
+    compliance_status: str | None
+    compliance_score: int | None
+    summary: str | None
+    advice: str | None
+    error: str | None
+    frequency: Frequency
+    next_check_at: datetime | None
+    last_checked_at: datetime | None
+    created_at: datetime
+
+
+class DocumentDetail(DocumentOut):
+    checks: list[dict[str, Any]] = []
 
 
 class DashboardStats(BaseModel):
@@ -100,4 +145,28 @@ class DashboardStats(BaseModel):
     verified_targets: int
     total_scans: int
     open_findings: int
+    score: int
+    grade: str
+    score_summary: str
     findings_by_severity: dict[str, int]
+    findings_by_category: dict[str, int]
+
+
+class Report(BaseModel):
+    asset: str
+    label: str | None
+    generated_at: str
+    scan_id: str
+    overall_risk: str
+    score: int
+    grade: str
+    score_summary: str
+    compliance: list[dict[str, Any]]
+    gdpr: dict[str, Any]
+    advice: str | None = None
+    advice_source: str | None = None
+    advice_status: str | None = None
+    headline: str
+    totals: dict[str, Any]
+    next_steps: list[str]
+    sections: list[dict[str, Any]]

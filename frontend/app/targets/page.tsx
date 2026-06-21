@@ -3,21 +3,36 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Shell, { StatusBadge } from "@/components/Shell";
-import { api, ApiError, Target } from "@/lib/api";
+import { api, ApiError, Frequency, Target } from "@/lib/api";
 
 export default function TargetsPage() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [address, setAddress] = useState("");
   const [label, setLabel] = useState("");
   const [method, setMethod] = useState("dns_txt");
-  const [schedule, setSchedule] = useState("");
+  const [frequency, setFrequency] = useState<Frequency>("weekly");
+  const [alertEmail, setAlertEmail] = useState("");
+  const [alertWhatsapp, setAlertWhatsapp] = useState("");
+  const [githubTarget, setGithubTarget] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   function load() {
-    api.listTargets().then(setTargets).catch(() => undefined);
+    api
+      .listTargets()
+      .then(setTargets)
+      .catch(() => undefined);
   }
   useEffect(load, []);
+
+  // Prefill the domain a visitor typed on the landing page.
+  useEffect(() => {
+    const pending = localStorage.getItem("guarda_pending_domain");
+    if (pending) {
+      setAddress(pending);
+      localStorage.removeItem("guarda_pending_domain");
+    }
+  }, []);
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -28,66 +43,105 @@ export default function TargetsPage() {
         address,
         label: label || undefined,
         verification_method: method,
-        schedule: schedule || null,
+        frequency,
+        alert_email: alertEmail || null,
+        alert_whatsapp: alertWhatsapp || null,
+        github_target: githubTarget || null,
       });
       setAddress("");
       setLabel("");
-      setSchedule("");
+      setAlertEmail("");
+      setAlertWhatsapp("");
+      setGithubTarget("");
+      setFrequency("weekly");
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to add target");
+      setError(err instanceof ApiError ? err.message : "Failed to add asset");
     } finally {
       setBusy(false);
     }
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Delete this target and all its scans?")) return;
+    if (!confirm("Stop monitoring this asset and delete all its scans?")) return;
     await api.deleteTarget(id);
     load();
   }
 
   return (
     <Shell>
-      <h1 className="page-title">Targets</h1>
-      <p className="page-sub">Add the internet-facing assets you own. Verify ownership before scanning.</p>
+      <h1 className="page-title">Monitored Assets</h1>
+      <p className="page-sub">
+        Add the domains you own. We verify ownership, then watch them on your schedule and
+        alert you by email or WhatsApp when something sensitive shows up.
+      </p>
 
       <div className="panel">
-        <h3 style={{ marginTop: 0 }}>Add target</h3>
+        <h3 style={{ marginTop: 0 }}>Add asset to monitor</h3>
         <form onSubmit={onCreate}>
-          <div className="row" style={{ alignItems: "flex-end" }}>
-            <div className="field" style={{ flex: 2 }}>
-              <label>Hostname / IP / CIDR</label>
+          <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div className="field" style={{ flex: 2, minWidth: 200 }}>
+              <label>Domain / Hostname</label>
               <input
-                placeholder="example.com or 203.0.113.10"
+                placeholder="example.com"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 required
               />
             </div>
-            <div className="field" style={{ flex: 1 }}>
+            <div className="field" style={{ flex: 1, minWidth: 130 }}>
               <label>Label (optional)</label>
               <input value={label} onChange={(e) => setLabel(e.target.value)} />
             </div>
-            <div className="field" style={{ flex: 1 }}>
+            <div className="field" style={{ flex: 1, minWidth: 130 }}>
               <label>Verification</label>
               <select value={method} onChange={(e) => setMethod(e.target.value)}>
                 <option value="dns_txt">DNS TXT</option>
                 <option value="http_file">HTTP file</option>
               </select>
             </div>
-            <div className="field" style={{ flex: 1 }}>
-              <label>Schedule</label>
-              <select value={schedule} onChange={(e) => setSchedule(e.target.value)}>
-                <option value="">Manual</option>
+            <div className="field" style={{ flex: 1, minWidth: 130 }}>
+              <label>Scan frequency</label>
+              <select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as Frequency)}
+              >
                 <option value="hourly">Hourly</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
               </select>
+            </div>
+          </div>
+          <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div className="field" style={{ flex: 2, minWidth: 180 }}>
+              <label>Alert email (where we send sensitive findings)</label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={alertEmail}
+                onChange={(e) => setAlertEmail(e.target.value)}
+              />
+            </div>
+            <div className="field" style={{ flex: 1, minWidth: 160 }}>
+              <label>WhatsApp alert (optional)</label>
+              <input
+                placeholder="+15551234567"
+                value={alertWhatsapp}
+                onChange={(e) => setAlertWhatsapp(e.target.value)}
+              />
+            </div>
+            <div className="field" style={{ flex: 2, minWidth: 180 }}>
+              <label>Public GitHub repo to scan for leaks (optional)</label>
+              <input
+                placeholder="owner/repo"
+                value={githubTarget}
+                onChange={(e) => setGithubTarget(e.target.value)}
+              />
             </div>
             <div className="field">
               <button className="btn" disabled={busy}>
-                {busy ? "…" : "Add"}
+                {busy ? "…" : "Add asset"}
               </button>
             </div>
           </div>
@@ -99,10 +153,13 @@ export default function TargetsPage() {
         <table>
           <thead>
             <tr>
-              <th>Address</th>
+              <th>Asset</th>
               <th>Label</th>
               <th>Status</th>
-              <th>Schedule</th>
+              <th>Frequency</th>
+              <th>Next scan</th>
+              <th>Alert email</th>
+              <th>WhatsApp</th>
               <th></th>
             </tr>
           </thead>
@@ -118,7 +175,16 @@ export default function TargetsPage() {
                 <td>
                   <StatusBadge status={t.status} />
                 </td>
-                <td>{t.schedule || <span className="muted">manual</span>}</td>
+                <td style={{ textTransform: "capitalize" }}>{t.frequency}</td>
+                <td>
+                  {t.next_scan_at ? (
+                    new Date(t.next_scan_at).toLocaleString()
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
+                <td>{t.alert_email || <span className="muted">—</span>}</td>
+                <td>{t.alert_whatsapp || <span className="muted">—</span>}</td>
                 <td style={{ textAlign: "right" }}>
                   <button className="btn danger" onClick={() => onDelete(t.id)}>
                     Delete
@@ -128,8 +194,8 @@ export default function TargetsPage() {
             ))}
             {targets.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
-                  No targets yet. Add one above.
+                <td colSpan={8} className="muted">
+                  No assets yet. Add one above.
                 </td>
               </tr>
             )}

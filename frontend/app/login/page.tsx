@@ -19,7 +19,15 @@ export default function LoginPage() {
     try {
       if (mode === "login") await login(email, password);
       else await register(email, password);
-      router.replace("/dashboard");
+      const pending =
+        typeof window !== "undefined"
+          ? localStorage.getItem("guarda_pending_domain")
+          : null;
+      if (pending) {
+        router.replace("/scanning");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
     } finally {
@@ -30,11 +38,12 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
-        <div className="brand" style={{ marginBottom: 20 }}>
-          <span className="dot" /> Perimeter
+        <div className="brand" style={{ marginBottom: 12 }}>
+          <span className="dot" /> Guarda
         </div>
         <p className="muted" style={{ marginTop: 0 }}>
-          External vulnerability scanning & attack surface management
+          Know your external security score. Sign in to check your domain, fix
+          exposures in plain English, and pass enterprise security questionnaires.
         </p>
         <form onSubmit={onSubmit}>
           <div className="field">

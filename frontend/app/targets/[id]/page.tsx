@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Shell, { SeverityBadge, StatusBadge } from "@/components/Shell";
+import Link from "next/link";
+import Shell, { CategoryBadge, SeverityBadge, StatusBadge } from "@/components/Shell";
 import {
   api,
   ApiError,
@@ -91,7 +92,7 @@ export default function TargetDetailPage() {
           </p>
         </div>
         <button className="btn secondary" onClick={() => router.push("/targets")}>
-          ← Targets
+          ← Assets
         </button>
       </div>
 
@@ -113,6 +114,28 @@ export default function TargetDetailPage() {
           </div>
         </div>
       )}
+
+      <div className="panel">
+        <h3 style={{ marginTop: 0 }}>Monitoring settings</h3>
+        <div className="row" style={{ gap: 32, flexWrap: "wrap" }}>
+          <div>
+            <div className="label">Scan frequency</div>
+            <div style={{ textTransform: "capitalize" }}>{target.frequency}</div>
+          </div>
+          <div>
+            <div className="label">Alert email</div>
+            <div>{target.alert_email || <span className="muted">not set</span>}</div>
+          </div>
+          <div>
+            <div className="label">WhatsApp alert</div>
+            <div>{target.alert_whatsapp || <span className="muted">not set</span>}</div>
+          </div>
+          <div>
+            <div className="label">GitHub repo</div>
+            <div>{target.github_target || <span className="muted">none</span>}</div>
+          </div>
+        </div>
+      </div>
 
       {target.status === "verified" && (
         <div className="panel">
@@ -143,8 +166,11 @@ export default function TargetDetailPage() {
                   </td>
                   <td>{s.finished_at ? new Date(s.finished_at).toLocaleString() : "—"}</td>
                   <td style={{ textAlign: "right" }}>
+                    <Link className="btn secondary" href={`/reports/${s.id}`} style={{ marginRight: 6 }}>
+                      Report
+                    </Link>
                     <button className="btn secondary" onClick={() => openScan(s.id)}>
-                      View results
+                      Findings
                     </button>
                   </td>
                 </tr>
@@ -167,11 +193,10 @@ export default function TargetDetailPage() {
           <table>
             <thead>
               <tr>
-                <th>Severity</th>
+                <th>Category</th>
+                <th>Urgency</th>
                 <th>Title</th>
-                <th>Host:Port</th>
-                <th>CVE</th>
-                <th>Priority</th>
+                <th>Where</th>
                 <th>Source</th>
               </tr>
             </thead>
@@ -179,21 +204,21 @@ export default function TargetDetailPage() {
               {findings.map((f) => (
                 <tr key={f.id}>
                   <td>
+                    <CategoryBadge category={f.category} />
+                  </td>
+                  <td>
                     <SeverityBadge severity={f.severity} />
                   </td>
                   <td>{f.title}</td>
-                  <td className="muted">
-                    {f.host}
-                    {f.port ? `:${f.port}` : ""}
+                  <td className="muted" style={{ wordBreak: "break-all" }}>
+                    {f.location || f.host || "—"}
                   </td>
-                  <td>{f.cve_id || <span className="muted">—</span>}</td>
-                  <td>{f.priority_score ?? "—"}</td>
                   <td className="muted">{f.source}</td>
                 </tr>
               ))}
               {findings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={5} className="muted">
                     No findings for this scan.
                   </td>
                 </tr>

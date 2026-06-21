@@ -1,77 +1,109 @@
-# Perimeter
+# Guarda
 
-Continuous **external vulnerability scanning & attack-surface management** — an open, self-hostable platform inspired by Intruder.io.
+**Know your external security score. Close the enterprise deal.**
 
-Add the assets you own, prove ownership, and Perimeter continuously scans your
-internet-facing perimeter for open ports, exposed services, misconfigurations
-and known CVEs — then prioritizes the findings and alerts you.
+Guarda is **external security monitoring built for SaaS founders**. Add the
+domains you own, prove ownership, choose how often Guarda should check them, and
+it continuously runs the same free OSINT recon tools attackers use — then turns
+whatever it finds into a single **A–F security score** and a **plain-language
+report**, and alerts you by **email or WhatsApp** the moment something sensitive
+shows up.
 
-> **Legal:** Only scan assets you own or are explicitly authorized to test.
-> Perimeter enforces target ownership verification (DNS TXT or HTTP file token)
-> before any scan can run.
+It's designed for the founder who is *selling*, not the engineer who is
+auditing: know your score, fix exposures in plain English, and hand a
+questionnaire-ready report to your enterprise prospects.
+
+- **A–F score** — one grade that rolls up every finding, on the dashboard and every report.
+- **Plain-English findings** — what we found, why it matters, and one action to take.
+- **Hourly → monthly scans** — pick a cadence per asset; alerts fire on new sensitive findings.
+- **WhatsApp + email alerts** — get the one thing you need to know, no dashboard required.
+- **Security-questionnaire readiness** — a shareable report to win enterprise deals.
+
+Findings are grouped into the things that actually matter to a business:
+
+- **Sensitive Information Found** — leaked passwords, API keys, exposed staff emails
+- **Exposed Data Detected** — public `.env`/`.git`, open directories, admin panels, backups
+- **Reputation Risk Identified** — subdomain takeovers and leaks that can harm your brand
+- **Your Digital Footprint** — the subdomains and live hosts that make up your online presence
+
+> **Legal:** Only monitor assets you own or are explicitly authorized to test.
+> Guarda enforces ownership verification (DNS TXT or HTTP file token) before any
+> scan can run against a domain.
 
 ## Architecture
 
 ```
                 ┌────────────┐        ┌──────────────┐
-   Browser ───▶ │  Next.js   │ ─API─▶ │   FastAPI    │ ──▶ PostgreSQL
+   Browser ───▶ │  Next.js   │ ─API─▶ │   FastAPI    │ ──▶ Supabase (Postgres)
                 │ dashboard  │        │   backend    │
                 └────────────┘        └──────┬───────┘
                                              │ enqueue
                                              ▼
-                                      ┌──────────────┐     ┌──────────┐
-                                      │  Celery      │ ◀──▶│  Redis   │
-                                      │  workers     │     └──────────┘
-                                      │  nmap/nuclei │
-                                      └──────┬───────┘
-                                             │ enrich
+                                      ┌─────────────────────┐   ┌──────────┐
+                                      │  Celery workers     │◀─▶│  Redis   │
+                                      │  subfinder · httpx  │   └──────────┘
+                                      │  nuclei · gitleaks  │
+                                      │  theHarvester       │
+                                      └──────┬──────────────┘
+                                             │ report + alert
                                              ▼
                                       ┌──────────────┐
-                                      │  Cala.ai     │  structured data/intel
-                                      │  MCP / API   │  ("skip the data")
+                                      │   Resend     │  email the user's
+                                      │   email      │  alert address
                                       └──────────────┘
 ```
 
 | Component | Tech |
 |---|---|
-| Backend API | Python 3.12, FastAPI, SQLAlchemy 2, Alembic |
+| Backend API | Python 3.12, FastAPI, SQLAlchemy 2 |
 | Async jobs | Celery + Redis |
-| Database | PostgreSQL 16 |
-| Scanners | nmap (ports/services), nuclei (CVE/templated checks) |
-| Data/intel | Cala.ai (MCP/API), pluggable CVE sources (NVD, CISA KEV) |
+| Database | Supabase (PostgreSQL), local Postgres fallback |
+| Recon tools | subfinder, httpx, nuclei (exposures/misconfig), gitleaks, theHarvester |
+| Scoring | A–F external security score + security-questionnaire checklist |
+| Alerts | Resend email + Twilio WhatsApp (Slack optional) |
 | Frontend | Next.js 14 (App Router), React, TypeScript |
 | Packaging | Docker + docker compose |
+
+## How a scan works
+
+1. **subfinder** enumerates subdomains (passive footprint).
+2. **httpx** probes which hosts are live and flags risky pages (admin panels, open dirs).
+3. **nuclei** runs exposure/misconfig templates on the live endpoints (`.env`, `.git`, backups, leaked tokens, takeovers).
+4. **gitleaks** (optional) clones a public GitHub repo you specify and finds committed secrets.
+5. **theHarvester** (best-effort) gathers leaked emails/hosts from public sources.
+6. Findings are categorized, a **non-technical report** is generated, and if anything sensitive is found, Guarda emails your **alert address** via Resend.
 
 ## Quick start
 
 ```bash
-cp .env.example .env          # fill in secrets you have (all optional for MVP)
+cp .env.example .env          # set SUPABASE_DB_URL and RESEND_API_KEY (see below)
 docker compose up --build
 ```
 
 - Dashboard: http://localhost:3000
 - API docs:  http://localhost:8000/docs
 
-The MVP runs entirely on free, self-hosted tools (nmap + nuclei) — **no API
-keys required**. Add keys to `.env` to unlock discovery and enrichment.
+Without `SUPABASE_DB_URL` set, Guarda falls back to the bundled local Postgres
+container so you can try it offline.
 
-## API keys (all optional, enable extra capability)
+## Configuration
 
-| Capability | Env var(s) | Provider |
+| Capability | Env var(s) | Notes |
 |---|---|---|
-| Structured data / intel | `CALA_API_KEY` | cala.ai |
-| Asset discovery | `SHODAN_API_KEY`, `CENSYS_API_ID`/`CENSYS_API_SECRET`, `SECURITYTRAILS_API_KEY`, `VIRUSTOTAL_API_KEY` | various |
-| CVE intel | `NVD_API_KEY`, `VULNERS_API_KEY` | NIST / Vulners |
-| Email alerts | `SENDGRID_API_KEY` | SendGrid |
-| Chat alerts | `SLACK_WEBHOOK_URL` | Slack |
-
-See `docs/` for module details.
+| Database | `SUPABASE_DB_URL` | Supabase → Project Settings → Database → Connection string → URI (with password). TLS is applied automatically. Falls back to `DATABASE_URL`. |
+| Email alerts | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | From defaults to Resend's test sender `onboarding@resend.dev`. |
+| Report links | `PUBLIC_APP_URL` | Base URL used for the "view full report" link in emails. |
+| Scan tuning | `NUCLEI_TAGS`, `NUCLEI_SEVERITY`, `SUBFINDER_MAX_TIME` | Reasonable defaults provided. |
+| Optional enrichment | `CALA_API_KEY`, `SHODAN_API_KEY`, `CENSYS_*`, `SECURITYTRAILS_API_KEY`, `VIRUSTOTAL_API_KEY`, `NVD_API_KEY`, `SLACK_WEBHOOK_URL` | Not required. |
 
 ## Development
 
 ```bash
 # backend
-cd backend && pip install -e ".[dev]" && uvicorn app.main:app --reload
+cd backend && pip install -e ".[dev]"
+ruff check app tests && pytest
+uvicorn app.main:app --reload
+
 # frontend
 cd frontend && npm install && npm run dev
 ```

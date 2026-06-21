@@ -6,6 +6,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import (
     Finding,
+    FindingCategory,
     FindingStatus,
     Scan,
     Severity,
@@ -14,6 +15,7 @@ from app.models import (
     User,
 )
 from app.schemas import DashboardStats
+from app.services.scoring import score_from_counts
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -31,12 +33,17 @@ def stats(
     )
 
     if not target_ids:
+        empty = score_from_counts({})
         return DashboardStats(
             targets=0,
             verified_targets=0,
             total_scans=0,
             open_findings=0,
+            score=empty["score"],
+            grade=empty["grade"],
+            score_summary=empty["summary"],
             findings_by_severity={s.value: 0 for s in Severity},
+            findings_by_category={c.value: 0 for c in FindingCategory},
         )
 
     total_scans = db.scalar(
@@ -55,10 +62,25 @@ def stats(
         by_sev[sev.value] = count
         open_count += count
 
+    cat_rows = db.execute(
+        select(Finding.category, func.count())
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.target_id.in_(target_ids), Finding.status == FindingStatus.open)
+        .group_by(Finding.category)
+    ).all()
+    by_cat = {c.value: 0 for c in FindingCategory}
+    for cat, count in cat_rows:
+        by_cat[cat.value] = count
+
+    score = score_from_counts(by_sev)
     return DashboardStats(
         targets=total_targets,
         verified_targets=verified or 0,
         total_scans=total_scans or 0,
         open_findings=open_count,
+        score=score["score"],
+        grade=score["grade"],
+        score_summary=score["summary"],
         findings_by_severity=by_sev,
+        findings_by_category=by_cat,
     )

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import Shell, { SeverityBadge } from "@/components/Shell";
+import Shell, { CategoryBadge, SeverityBadge } from "@/components/Shell";
 import { api, Finding, Severity } from "@/lib/api";
 
 const SEVERITIES: (Severity | "")[] = ["", "critical", "high", "medium", "low", "info"];
@@ -25,11 +25,13 @@ export default function FindingsPage() {
   return (
     <Shell>
       <h1 className="page-title">Findings</h1>
-      <p className="page-sub">Prioritized by business-risk-aware scoring (CVSS + CISA KEV exploit signal).</p>
+      <p className="page-sub">
+        What we found across your monitored assets, grouped by what it means for you.
+      </p>
 
       <div className="panel">
         <div className="row" style={{ marginBottom: 14 }}>
-          <label style={{ margin: 0 }}>Severity:</label>
+          <label style={{ margin: 0 }}>Urgency:</label>
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as Severity | "")}
@@ -45,11 +47,11 @@ export default function FindingsPage() {
         <table>
           <thead>
             <tr>
-              <th>Priority</th>
-              <th>Severity</th>
-              <th>Title</th>
-              <th>Host:Port</th>
-              <th>CVE</th>
+              <th>Category</th>
+              <th>Urgency</th>
+              <th>What we found</th>
+              <th>Where</th>
+              <th>Source</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -59,7 +61,7 @@ export default function FindingsPage() {
               <Fragment key={f.id}>
                 <tr>
                   <td>
-                    <strong>{f.priority_score ?? "—"}</strong>
+                    <CategoryBadge category={f.category} />
                   </td>
                   <td>
                     <SeverityBadge severity={f.severity} />
@@ -72,11 +74,10 @@ export default function FindingsPage() {
                       {f.title}
                     </a>
                   </td>
-                  <td className="muted">
-                    {f.host}
-                    {f.port ? `:${f.port}` : ""}
+                  <td className="muted" style={{ wordBreak: "break-all" }}>
+                    {f.location || f.host || "—"}
                   </td>
-                  <td>{f.cve_id || <span className="muted">—</span>}</td>
+                  <td className="muted">{f.source}</td>
                   <td>
                     <span className={`badge status-${f.status === "open" ? "queued" : "completed"}`}>
                       {f.status}

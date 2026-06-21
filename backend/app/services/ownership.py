@@ -3,8 +3,8 @@
 A scan may only run against a target whose ownership has been proven. We support
 two zero-cost methods:
 
-- ``dns_txt``: the user adds a TXT record ``perimeter-verification=<token>``.
-- ``http_file``: the user serves ``/.well-known/perimeter-verification.txt``
+- ``dns_txt``: the user adds a TXT record ``guarda-verification=<token>``.
+- ``http_file``: the user serves ``/.well-known/guarda-verification.txt``
   containing the token over HTTP(S).
 
 This is the same pattern used by ACME / search-console style verification and
@@ -18,8 +18,8 @@ import ipaddress
 import dns.resolver
 import httpx
 
-TXT_PREFIX = "perimeter-verification="
-WELL_KNOWN_PATH = "/.well-known/perimeter-verification.txt"
+TXT_PREFIX = "guarda-verification="
+WELL_KNOWN_PATH = "/.well-known/guarda-verification.txt"
 
 
 def _is_ip_or_cidr(address: str) -> bool:

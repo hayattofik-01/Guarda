@@ -1,0 +1,33 @@
+name: Guarda scheduled checks
+
+# Guarda's always-on engine: every 15 minutes this pings the backend, which runs
+# any domain scan or document compliance check that is due for each account
+# (based on the interval they chose) and emails them if something is off.
+# Note: GitHub only runs scheduled workflows from the repository's default branch.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scheduled checks
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL || 'https://guarda-backend.onrender.com' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET secret is not set; skipping." && exit 0
+          fi
+          # The free backend may be cold (sleeping); allow a generous timeout.
+          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            --max-time 180 --retry 2 --retry-delay 10 \
+            -X POST "$BACKEND_URL/api/cron/tick" \
+            -H "X-Cron-Secret: $CRON_SECRET")
+          echo "HTTP $code"
+          cat /tmp/resp.json || true
+          echo
+          [ "$code" = "200" ]

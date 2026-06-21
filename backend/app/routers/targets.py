@@ -10,6 +10,7 @@ from app.models import Target, TargetStatus, User, VerificationMethod
 from app.schemas import (
     TargetCreate,
     TargetOut,
+    TargetUpdate,
     VerificationInstructions,
 )
 from app.services import ownership
@@ -42,9 +43,32 @@ def create_target(
         address=payload.address.strip().lower(),
         label=payload.label,
         verification_method=payload.verification_method,
-        schedule=payload.schedule,
+        frequency=payload.frequency,
+        alert_email=payload.alert_email,
+        alert_whatsapp=(payload.alert_whatsapp or None),
+        github_target=(payload.github_target or None),
     )
     db.add(target)
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+@router.patch("/{target_id}", response_model=TargetOut)
+def update_target(
+    target_id: str,
+    payload: TargetUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Target:
+    target = _get_owned_target(target_id, user, db)
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(target, field, value)
+    if "frequency" in data:
+        from app.services.scheduling import next_run
+
+        target.next_scan_at = next_run(target.frequency, after=target.last_scan_at)
     db.commit()
     db.refresh(target)
     return target

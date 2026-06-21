@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Scan, ScanStatus, Target, TargetStatus, User
-from app.schemas import ScanDetail, ScanOut
+from app.models import Finding, Scan, ScanStatus, Target, TargetStatus, User
+from app.schemas import Report, ScanDetail, ScanOut
+from app.services.report import build_report
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
 
@@ -23,6 +24,7 @@ def _owned_scan(scan_id: str, user: User, db: Session) -> Scan:
 @router.post("/targets/{target_id}", response_model=ScanOut, status_code=201)
 def start_scan(
     target_id: str,
+    background: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Scan:
@@ -40,13 +42,10 @@ def start_scan(
     db.commit()
     db.refresh(scan)
 
-    # Import here to avoid a hard dependency on the worker package at API import time.
-    from app.worker.tasks import run_scan
+    # Run the scan in-process (the free deploy has no Celery worker/broker).
+    from app.services.scan_runner import execute_scan
 
-    async_result = run_scan.delay(scan.id)
-    scan.celery_task_id = async_result.id
-    db.commit()
-    db.refresh(scan)
+    background.add_task(execute_scan, scan.id)
     return scan
 
 
@@ -72,4 +71,39 @@ def get_scan(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Scan:
-    return _owned_scan(scan_id, user, db)
+    scan = _owned_scan(scan_id, user, db)
+    # If this scan has been stuck (e.g. its in-process task was OOM-killed),
+    # reclaim it so the poller stops spinning and lands on the report.
+    if scan.status in (ScanStatus.queued, ScanStatus.running):
+        from datetime import UTC, datetime, timedelta
+
+        from app.config import settings
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=settings.scan_stuck_after_seconds)
+        created = scan.created_at
+        if created is not None and created.tzinfo is None:
+            created = created.replace(tzinfo=UTC)
+        if created is not None and created < cutoff:
+            scan.status = ScanStatus.failed
+            scan.finished_at = scan.finished_at or datetime.now(UTC)
+            scan.error = scan.error or "Scan did not finish (timed out or interrupted)."
+            db.commit()
+            db.refresh(scan)
+    return scan
+
+
+@router.get("/{scan_id}/report", response_model=Report)
+def get_report(
+    scan_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Report:
+    scan = _owned_scan(scan_id, user, db)
+    target = db.get(Target, scan.target_id)
+    findings = list(db.scalars(select(Finding).where(Finding.scan_id == scan.id)))
+    # Lazily upgrade to Devin-authored advice once its session has finished.
+    from app.services.advice_agent import refresh_advice
+
+    if refresh_advice(scan):
+        db.commit()
+    return Report(**build_report(target, scan, findings))

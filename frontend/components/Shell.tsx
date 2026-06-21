@@ -7,9 +7,9 @@ import { api, clearToken, getToken } from "@/lib/api";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/targets", label: "Targets" },
+  { href: "/targets", label: "Monitored Assets" },
+  { href: "/documents", label: "Documents" },
   { href: "/findings", label: "Findings" },
-  { href: "/integrations", label: "Integrations" },
 ];
 
 export default function Shell({ children }: { children: ReactNode }) {
@@ -44,7 +44,11 @@ export default function Shell({ children }: { children: ReactNode }) {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <span className="dot" /> Perimeter
+          <span className="dot" />
+          <span>
+            Guarda
+            <span className="tagline">We watch. We detect. We guide.</span>
+          </span>
         </div>
         <nav className="nav">
           {NAV.map((item) => (
@@ -84,4 +88,17 @@ export function SeverityBadge({ severity }: { severity: string }) {
 
 export function StatusBadge({ status }: { status: string }) {
   return <span className={`badge status-${status}`}>{status}</span>;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  sensitive_info: "Sensitive Info",
+  exposed_data: "Exposed Data",
+  reputation_risk: "Reputation Risk",
+  footprint: "Footprint",
+};
+
+export function CategoryBadge({ category }: { category: string }) {
+  return (
+    <span className={`badge cat-${category}`}>{CATEGORY_LABELS[category] || category}</span>
+  );
 }
