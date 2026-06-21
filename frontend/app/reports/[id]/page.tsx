@@ -16,19 +16,76 @@ export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [report, setReport] = useState<Report | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .getReport(id)
-      .then(setReport)
-      .catch(() => setError("Could not load this report."));
+    let cancelled = false;
+    let poll: ReturnType<typeof setInterval> | undefined;
+
+    async function loadReport() {
+      try {
+        const r = await api.getReport(id);
+        if (!cancelled) setReport(r);
+      } catch {
+        if (!cancelled) setError("Could not load this report.");
+      }
+    }
+
+    async function init() {
+      // If the scan is still running, keep the user on a progress state and
+      // poll until it finishes — otherwise the report would render as "nothing
+      // found" before any findings have been persisted.
+      try {
+        const scan = await api.getScan(id);
+        if (cancelled) return;
+        if (scan.status === "queued" || scan.status === "running") {
+          setScanning(true);
+          poll = setInterval(async () => {
+            try {
+              const s = await api.getScan(id);
+              if (cancelled) return;
+              if (s.status === "completed" || s.status === "failed") {
+                if (poll) clearInterval(poll);
+                setScanning(false);
+                loadReport();
+              }
+            } catch {
+              /* transient backend warm-up — keep polling */
+            }
+          }, 3000);
+          return;
+        }
+      } catch {
+        /* fall through to a best-effort report load */
+      }
+      loadReport();
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+      if (poll) clearInterval(poll);
+    };
   }, [id]);
 
   if (error) {
     return (
       <Shell>
         <p className="error">{error}</p>
+      </Shell>
+    );
+  }
+  if (scanning) {
+    return (
+      <Shell>
+        <div className="panel" style={{ textAlign: "center", padding: "32px 20px" }}>
+          <h3 style={{ marginTop: 0 }}>Scan still running…</h3>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Guarda is still mapping your external footprint and verifying you with
+            Cala. This page will update automatically when the report is ready.
+          </p>
+        </div>
       </Shell>
     );
   }

@@ -54,14 +54,15 @@ export default function ScanningPage() {
         localStorage.removeItem("guarda_pending_domain");
         pushLog(`scan queued · id ${scan_id.slice(0, 8)}`);
 
-        // Safety net: always land on the report even if the free backend is
-        // slow to finish — the report renders whatever has been found so far.
+        // Safety net: land on the report even if the backend is slow. The
+        // report page itself keeps polling if the scan is still running, so the
+        // user never sees an empty "nothing found" report mid-scan.
         const maxWait = setTimeout(() => {
           if (!cancelled) {
             if (polling) clearInterval(polling);
             router.replace(`/reports/${scan_id}`);
           }
-        }, 95_000);
+        }, 210_000);
         timers.push(maxWait);
 
         polling = setInterval(async () => {
@@ -127,7 +128,7 @@ export default function ScanningPage() {
         </h1>
         <p className="scan-sub">
           Running the same reconnaissance an attacker runs — across public
-          sources. This usually takes under a minute.
+          sources. This usually takes a minute or two.
         </p>
 
         <div className="scan-radar">
