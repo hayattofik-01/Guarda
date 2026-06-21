@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     nuclei_severity: str = "low,medium,high,critical"
     scan_timeout_seconds: int = 60 * 30
     subfinder_max_time: int = 60 * 5
+    # nuclei is the heaviest step; bound it so onboarding scans stay snappy on
+    # small (free-tier) instances. Caps targets and enforces an overall deadline
+    # (partial results are kept if the deadline is hit).
+    nuclei_max_targets: int = 15
+    nuclei_deadline_seconds: int = 90
+    nuclei_concurrency: int = 25
+    nuclei_rate_limit: int = 150
+    nuclei_request_timeout: int = 5
 
     # Integrations (all optional)
     cala_api_key: str = ""

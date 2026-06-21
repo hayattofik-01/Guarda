@@ -49,6 +49,9 @@ def run(targets: list[str] | str) -> tuple[list[dict], str]:
     if not targets:
         return [], ""
 
+    # Bound the workload so onboarding scans stay fast on small instances.
+    targets = targets[: settings.nuclei_max_targets]
+
     with tempfile.TemporaryDirectory() as tmp:
         list_file = os.path.join(tmp, "targets.txt")
         with open(list_file, "w") as f:
@@ -58,19 +61,30 @@ def run(targets: list[str] | str) -> tuple[list[dict], str]:
             "-l", list_file,
             "-tags", settings.nuclei_tags,
             "-severity", settings.nuclei_severity,
+            "-concurrency", str(settings.nuclei_concurrency),
+            "-rate-limit", str(settings.nuclei_rate_limit),
+            "-timeout", str(settings.nuclei_request_timeout),
+            "-retries", "1",
+            "-no-interactsh",
             "-jsonl",
             "-silent",
             "-no-color",
             "-disable-update-check",
         ]
-        proc = subprocess.run(
+        # Use Popen so a deadline hit still keeps whatever findings nuclei has
+        # already streamed to stdout (subprocess.run would discard them).
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
             text=True,
-            timeout=settings.scan_timeout_seconds,
         )
-        raw = proc.stdout
-        return _parse(raw), raw
+        try:
+            raw, _ = proc.communicate(timeout=settings.nuclei_deadline_seconds)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            raw, _ = proc.communicate()
+        return _parse(raw or ""), (raw or "")
 
 
 def _parse(jsonl: str) -> list[dict]:
