@@ -185,6 +185,30 @@ def _collect_sources(res: Any) -> list[str]:
     return seen[:5]
 
 
+# Markers that Cala's answer is reporting the ABSENCE of an incident, not one.
+_NO_INCIDENT_MARKERS = (
+    "no publicly reported",
+    "no known",
+    "no data breach",
+    "no breaches",
+    "no security breach",
+    "no cybersecurity incident",
+    "no reported",
+    "no evidence of",
+    "could not find",
+    "have been identified",
+    "were identified",
+    "have not been",
+    "not been any",
+)
+
+
+def _is_no_incident(content: str) -> bool:
+    """True when Cala's answer states no breach/incident was found."""
+    low = (content or "").lower()
+    return any(m in low for m in _NO_INCIDENT_MARKERS)
+
+
 def _summarise(content: str) -> str:
     """First substantive paragraph of Cala's markdown answer (skip headings)."""
     for block in content.split("\n\n"):
@@ -204,10 +228,15 @@ def _incidents(client: CalaClient, name: str) -> list[dict[str, Any]]:
         return []
     if not isinstance(res, dict):
         return []
+    content = res.get("content") or ""
+    # Cala often answers "no breach found" with an unrelated citation — don't
+    # surface that as an incident.
+    if _is_no_incident(content):
+        return []
     sources = _collect_sources(res)
     if not sources:  # never present absence of cited data as a finding
         return []
-    summary = _summarise(res.get("content") or "") or "Publicly reported incident found."
+    summary = _summarise(content) or "Publicly reported incident found."
     return [{"summary": summary, "sources": sources}]
 
 
