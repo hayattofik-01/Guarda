@@ -527,6 +527,35 @@ label {
 .check-fail {
   color: var(--critical);
 }
+.gdpr-source {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.gdpr-source.cala {
+  background: rgba(124, 92, 255, 0.18);
+  color: var(--accent);
+  border: 1px solid rgba(124, 92, 255, 0.4);
+}
+.gdpr-source.heuristic {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.gdpr-article {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(124, 92, 255, 0.12);
+  padding: 1px 7px;
+  border-radius: 6px;
+  margin-left: 4px;
+}
 
 @media print {
   .sidebar,

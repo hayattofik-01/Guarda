@@ -136,6 +136,7 @@ class Report(BaseModel):
     grade: str
     score_summary: str
     compliance: list[dict[str, Any]]
+    gdpr: dict[str, Any]
     headline: str
     totals: dict[str, Any]
     next_steps: list[str]

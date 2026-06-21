@@ -30,6 +30,8 @@ def test_report_all_clear():
     assert report["overall_risk"] == "All clear"
     assert report["totals"]["findings"] == 0
     assert report["sections"] == []
+    assert report["gdpr"]["checks"]
+    assert all(c["passed"] for c in report["gdpr"]["checks"])
 
 
 def test_report_action_needed_and_sections_ordered():

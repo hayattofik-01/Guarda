@@ -11,6 +11,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from app.services.gdpr import gdpr_assessment
 from app.services.scoring import compliance_checklist, compute_score
 
 if TYPE_CHECKING:
@@ -130,6 +131,7 @@ def build_report(target: Target, scan: Scan, findings: list[Finding]) -> dict:
         "grade": score["grade"],
         "score_summary": score["summary"],
         "compliance": compliance_checklist(findings),
+        "gdpr": gdpr_assessment(target.address, findings, scan_id=scan.id),
         "headline": _headline(target.address, risk, sensitive_count, exposed_count),
         "totals": {
             "findings": len(findings),

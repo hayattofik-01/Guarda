@@ -98,6 +98,38 @@ export default function ReportPage() {
         </div>
       )}
 
+      {report.gdpr && report.gdpr.checks.length > 0 && (
+        <div className="panel compliance">
+          <div className="flex-between" style={{ alignItems: "flex-start" }}>
+            <h3 style={{ marginTop: 0 }}>GDPR compliance</h3>
+            <span className={`gdpr-source ${report.gdpr.source}`}>
+              {report.gdpr.source === "cala"
+                ? "Assessed by Cala AI"
+                : "Automated assessment"}
+            </span>
+          </div>
+          <p className="muted" style={{ marginTop: 0 }}>
+            {report.gdpr.summary}
+          </p>
+          <ul>
+            {report.gdpr.checks.map((c, i) => (
+              <li key={i}>
+                <span className={`check-mark ${c.passed ? "check-pass" : "check-fail"}`}>
+                  {c.passed ? "\u2713" : "\u2717"}
+                </span>
+                <div>
+                  <div>
+                    {c.requirement}{" "}
+                    <span className="gdpr-article">{c.article}</span>
+                  </div>
+                  <div className="muted" style={{ fontSize: 12 }}>{c.detail}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {report.next_steps.length > 0 && (
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>What to do next</h3>

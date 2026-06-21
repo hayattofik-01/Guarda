@@ -148,6 +148,19 @@ export interface ComplianceCheck {
   detail: string;
 }
 
+export interface GdprCheck {
+  article: string;
+  requirement: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface GdprAssessment {
+  source: "cala" | "heuristic";
+  summary: string;
+  checks: GdprCheck[];
+}
+
 export interface ReportItem {
   title: string;
   severity: Severity;
@@ -175,6 +188,7 @@ export interface Report {
   grade: string;
   score_summary: string;
   compliance: ComplianceCheck[];
+  gdpr: GdprAssessment;
   headline: string;
   totals: Record<string, number | Record<string, number>>;
   next_steps: string[];
