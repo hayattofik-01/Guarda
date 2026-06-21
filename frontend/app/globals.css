@@ -889,3 +889,189 @@ label {
     font-size: 34px;
   }
 }
+
+/* ===== How-it-works videos ===== */
+.lp-videos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+.lp-video {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.lp-video video,
+.lp-video iframe {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16 / 10;
+  background: #000;
+  border: 0;
+}
+.lp-video-cap {
+  padding: 14px 18px;
+}
+.lp-video-cap strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.lp-video-cap span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ===== Book a demo ===== */
+.lp-demo {
+  text-align: center;
+  max-width: 620px;
+  margin: 0 auto;
+}
+.lp-demo .btn {
+  display: inline-block;
+  height: 46px;
+  line-height: 28px;
+  font-size: 15px;
+  padding: 9px 26px;
+}
+.lp-demo-note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ===== Scanning animation ===== */
+.scan-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.scan-card {
+  width: 560px;
+  max-width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px 30px 26px;
+  text-align: center;
+}
+.scan-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 6px 0 8px;
+}
+.scan-sub {
+  color: var(--muted);
+  margin: 0 auto 22px;
+  max-width: 420px;
+  line-height: 1.55;
+}
+.scan-radar {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 26px;
+}
+.scan-radar-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  border-radius: 50%;
+}
+.scan-radar-ring.r2 {
+  inset: 28px;
+  border-color: rgba(124, 92, 255, 0.22);
+}
+.scan-radar-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 16px var(--accent);
+}
+.scan-radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(124, 92, 255, 0.45),
+    rgba(124, 92, 255, 0) 80deg
+  );
+  animation: scan-spin 1.5s linear infinite;
+}
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.scan-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 20px;
+  max-width: 420px;
+  text-align: left;
+}
+.scan-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+.scan-steps li.done {
+  color: var(--text);
+}
+.scan-steps li.active {
+  color: var(--text);
+}
+.scan-step-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+.scan-steps li.done .scan-step-icon {
+  background: var(--green);
+  border-color: var(--green);
+}
+.scan-steps li.active .scan-step-icon {
+  border-color: var(--accent);
+  border-top-color: transparent;
+  animation: scan-spin 0.8s linear infinite;
+}
+.scan-console {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--accent-2);
+  min-height: 70px;
+}
+.scan-console div {
+  padding: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

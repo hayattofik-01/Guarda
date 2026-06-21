@@ -34,8 +34,9 @@ export default function IntegrationsPage() {
     <Shell>
       <h1 className="page-title">Integrations</h1>
       <p className="page-sub">
-        Guarda scans with free OSINT tools (subfinder, httpx, nuclei, gitleaks, theHarvester).
-        Supabase and Resend power storage and alerts; the rest are optional enrichments.
+        Every integration below is managed by Guarda — you never enter an API key. Scans run on
+        built-in OSINT tools (subfinder, httpx, nuclei, gitleaks, theHarvester) and the GDPR check
+        is powered by Cala. This page just shows what&apos;s connected on your behalf.
       </p>
 
       <div className="panel">

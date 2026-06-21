@@ -19,7 +19,15 @@ export default function LoginPage() {
     try {
       if (mode === "login") await login(email, password);
       else await register(email, password);
-      router.replace("/dashboard");
+      const pending =
+        typeof window !== "undefined"
+          ? localStorage.getItem("guarda_pending_domain")
+          : null;
+      if (pending) {
+        router.replace("/scanning");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
     } finally {

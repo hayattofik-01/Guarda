@@ -8,6 +8,7 @@ from app.routers import (
     dashboard,
     findings,
     integrations,
+    onboarding,
     scans,
     targets,
 )
@@ -32,6 +33,7 @@ app.include_router(scans.router)
 app.include_router(findings.router)
 app.include_router(dashboard.router)
 app.include_router(integrations.router)
+app.include_router(onboarding.router)
 
 
 @app.get("/health")

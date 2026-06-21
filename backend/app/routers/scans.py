@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,7 @@ def _owned_scan(scan_id: str, user: User, db: Session) -> Scan:
 @router.post("/targets/{target_id}", response_model=ScanOut, status_code=201)
 def start_scan(
     target_id: str,
+    background: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Scan:
@@ -41,13 +42,10 @@ def start_scan(
     db.commit()
     db.refresh(scan)
 
-    # Import here to avoid a hard dependency on the worker package at API import time.
-    from app.worker.tasks import run_scan
+    # Run the scan in-process (the free deploy has no Celery worker/broker).
+    from app.services.scan_runner import execute_scan
 
-    async_result = run_scan.delay(scan.id)
-    scan.celery_task_id = async_result.id
-    db.commit()
-    db.refresh(scan)
+    background.add_task(execute_scan, scan.id)
     return scan
 
 

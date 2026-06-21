@@ -45,6 +45,9 @@ const STEPS = [
   },
 ];
 
+const DEMO_URL =
+  "mailto:founders@guarda.app?subject=Book%20a%20Guarda%20demo&body=Hi%20Guarda%20team%2C%20I%27d%20like%20to%20book%20a%20demo.%20My%20company%20domain%20is%3A";
+
 export default function Landing() {
   const router = useRouter();
   const [domain, setDomain] = useState("");
@@ -77,6 +80,9 @@ export default function Landing() {
             </Link>
           ) : (
             <>
+              <a className="lp-link" href={DEMO_URL}>
+                Book a demo
+              </a>
               <Link className="lp-link" href="/login">
                 Sign in
               </Link>
@@ -162,6 +168,34 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="lp-section">
+        <h2 className="lp-h2">See Guarda in action</h2>
+        <p className="lp-sub">
+          Enter a domain, watch the live scan, and get a plain-English report with a GDPR
+          compliance check verified against Cala&apos;s knowledge graph.
+        </p>
+        <div className="lp-videos">
+          <div className="lp-video">
+            <video controls preload="metadata" poster="/videos/scan-poster.png">
+              <source src="/videos/how-it-works-scan.mp4" type="video/mp4" />
+            </video>
+            <div className="lp-video-cap">
+              <strong>1 · Enter your domain, watch the scan</strong>
+              <span>Guarda runs the recon an attacker runs — live, in under a minute.</span>
+            </div>
+          </div>
+          <div className="lp-video">
+            <video controls preload="metadata" poster="/videos/report-poster.png">
+              <source src="/videos/how-it-works-report.mp4" type="video/mp4" />
+            </video>
+            <div className="lp-video-cap">
+              <strong>2 · Get your score &amp; report</strong>
+              <span>An A–F grade, plain-English fixes, and a Cala-verified GDPR check.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="lp-section lp-band">
         <div className="lp-two">
           <div>
@@ -201,30 +235,17 @@ export default function Landing() {
 
       <section className="lp-section lp-band">
         <h2 className="lp-h2">Built for the founder, not the auditor</h2>
-        <div className="lp-pricing">
-          <div className="lp-price-card lp-them">
-            <div className="lp-price-name">Intruder · Detectify · Tenable</div>
-            <div className="lp-price-amt">€100+/mo</div>
-            <ul>
-              <li>Need a security engineer to operate</li>
-              <li>Built for audits, not founders</li>
-              <li>Technical output to decode</li>
-            </ul>
-          </div>
-          <div className="lp-price-card lp-us">
-            <div className="lp-price-name">Guarda</div>
-            <div className="lp-price-amt">
-              €99<span>/mo</span>
-            </div>
-            <ul>
-              <li>Self-serve — live in minutes</li>
-              <li>Plain English, A–F score</li>
-              <li>Hourly scans + WhatsApp alerts</li>
-              <li>Enterprise-ready shareable report</li>
-            </ul>
-            <button className="btn" onClick={() => goCheck()}>
-              Check my score
-            </button>
+        <p className="lp-sub">
+          The tools that do this today — Intruder, Detectify, Tenable — need a security engineer to
+          operate and were built for audits. Guarda is self-serve, plain English, and built for the
+          founder who is selling. Want a walkthrough on your own domain?
+        </p>
+        <div className="lp-demo">
+          <a className="btn" href={DEMO_URL}>
+            Book a demo →
+          </a>
+          <div className="lp-demo-note">
+            A 20-minute call. We&apos;ll scan your domain live and walk you through the report.
           </div>
         </div>
       </section>
@@ -242,6 +263,9 @@ export default function Landing() {
             Check my score →
           </button>
         </form>
+        <div className="lp-demo-note">
+          Prefer a guided walkthrough? <a style={{ color: "var(--accent-2)" }} href={DEMO_URL}>Book a demo</a>.
+        </div>
       </section>
 
       <footer className="lp-footer">

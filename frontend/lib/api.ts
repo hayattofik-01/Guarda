@@ -284,4 +284,10 @@ export const api = {
 
   integrations: () => request<IntegrationStatus>("/api/integrations/status"),
   calaHealth: () => request<Record<string, unknown>>("/api/integrations/cala/health"),
+
+  onboardingScan: (domain: string) =>
+    request<{ scan_id: string; target_id: string }>("/api/onboarding/scan", {
+      method: "POST",
+      body: JSON.stringify({ domain }),
+    }),
 };
