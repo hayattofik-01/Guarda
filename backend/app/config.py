@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # Resend (primary email provider)
     resend_api_key: str = ""
     resend_from_email: str = "Guarda <onboarding@resend.dev>"
+    # Twilio WhatsApp (optional) — used to send alerts to the user's WhatsApp.
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_whatsapp_from: str = "whatsapp:+14155238886"  # Twilio sandbox number
     # public base URL used in report links inside emails
     public_app_url: str = "http://localhost:3000"
 

@@ -39,6 +39,7 @@ class TargetCreate(BaseModel):
     verification_method: VerificationMethod = VerificationMethod.dns_txt
     frequency: Frequency = Frequency.weekly
     alert_email: EmailStr | None = None
+    alert_whatsapp: str | None = None
     github_target: str | None = None
 
 
@@ -46,6 +47,7 @@ class TargetUpdate(BaseModel):
     label: str | None = None
     frequency: Frequency | None = None
     alert_email: EmailStr | None = None
+    alert_whatsapp: str | None = None
     github_target: str | None = None
 
 
@@ -60,6 +62,7 @@ class TargetOut(BaseModel):
     verified_at: datetime | None
     frequency: Frequency
     alert_email: str | None
+    alert_whatsapp: str | None
     github_target: str | None
     created_at: datetime
 
@@ -116,6 +119,9 @@ class DashboardStats(BaseModel):
     verified_targets: int
     total_scans: int
     open_findings: int
+    score: int
+    grade: str
+    score_summary: str
     findings_by_severity: dict[str, int]
     findings_by_category: dict[str, int]
 
@@ -126,6 +132,10 @@ class Report(BaseModel):
     generated_at: str
     scan_id: str
     overall_risk: str
+    score: int
+    grade: str
+    score_summary: str
+    compliance: list[dict[str, Any]]
     headline: str
     totals: dict[str, Any]
     next_steps: list[str]

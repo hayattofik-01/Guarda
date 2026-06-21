@@ -27,6 +27,7 @@ from app.worker.scanners import (
 
 # How often each frequency triggers an automated scan.
 FREQUENCY_INTERVALS = {
+    Frequency.hourly: timedelta(hours=1),
     Frequency.daily: timedelta(days=1),
     Frequency.weekly: timedelta(weeks=1),
     Frequency.monthly: timedelta(days=30),
@@ -209,8 +210,8 @@ def enqueue_due_scans() -> int:
 
 
 def _alert_if_sensitive(db, target: Target, scan: Scan, findings: list[Finding]) -> None:
-    """Email the user's alert address when sensitive findings are discovered."""
-    if not target.alert_email:
+    """Alert the user (email + WhatsApp) when sensitive findings are discovered."""
+    if not (target.alert_email or target.alert_whatsapp):
         return
     flagged = [
         f
@@ -224,6 +225,13 @@ def _alert_if_sensitive(db, target: Target, scan: Scan, findings: list[Finding])
 
     try:
         report = build_report(target, scan, findings)
-        send_sensitive_alert(target.alert_email, target.address, flagged, report, scan.id)
+        send_sensitive_alert(
+            target.address,
+            flagged,
+            report,
+            scan.id,
+            email=target.alert_email,
+            whatsapp=target.alert_whatsapp,
+        )
     except Exception:  # noqa: BLE001 - alerts are best-effort
         pass

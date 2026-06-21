@@ -1,12 +1,23 @@
 # Guarda
 
-**We watch. We detect. We guide.**
+**Know your external security score. Close the enterprise deal.**
 
-Guarda is a **digital-footprint & sensitive-data exposure monitor**. Add the
+Guarda is **external security monitoring built for SaaS founders**. Add the
 domains you own, prove ownership, choose how often Guarda should check them, and
 it continuously runs the same free OSINT recon tools attackers use — then turns
-whatever it finds into a **plain-language report** and emails you the moment
-something sensitive shows up.
+whatever it finds into a single **A–F security score** and a **plain-language
+report**, and alerts you by **email or WhatsApp** the moment something sensitive
+shows up.
+
+It's designed for the founder who is *selling*, not the engineer who is
+auditing: know your score, fix exposures in plain English, and hand a
+questionnaire-ready report to your enterprise prospects.
+
+- **A–F score** — one grade that rolls up every finding, on the dashboard and every report.
+- **Plain-English findings** — what we found, why it matters, and one action to take.
+- **Hourly → monthly scans** — pick a cadence per asset; alerts fire on new sensitive findings.
+- **WhatsApp + email alerts** — get the one thing you need to know, no dashboard required.
+- **Security-questionnaire readiness** — a shareable report to win enterprise deals.
 
 Findings are grouped into the things that actually matter to a business:
 
@@ -48,7 +59,8 @@ Findings are grouped into the things that actually matter to a business:
 | Async jobs | Celery + Redis |
 | Database | Supabase (PostgreSQL), local Postgres fallback |
 | Recon tools | subfinder, httpx, nuclei (exposures/misconfig), gitleaks, theHarvester |
-| Alerts | Resend email (Slack optional) |
+| Scoring | A–F external security score + security-questionnaire checklist |
+| Alerts | Resend email + Twilio WhatsApp (Slack optional) |
 | Frontend | Next.js 14 (App Router), React, TypeScript |
 | Packaging | Docker + docker compose |
 

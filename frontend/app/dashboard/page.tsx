@@ -42,7 +42,18 @@ export default function DashboardPage() {
   return (
     <Shell>
       <h1 className="page-title">Dashboard</h1>
-      <p className="page-sub">Your digital footprint and exposures at a glance.</p>
+      <p className="page-sub">Your external security score and exposures at a glance.</p>
+
+      <div className="score-hero">
+        <div className={`grade-badge grade-${stats?.grade ?? "A"}`}>{stats?.grade ?? "—"}</div>
+        <div>
+          <h2>Your external security score</h2>
+          <div className="score-num">{stats ? `${stats.score}/100` : "—"}</div>
+          <p className="muted" style={{ margin: "8px 0 0" }}>
+            {stats?.score_summary ?? "Add and verify an asset to get your first score."}
+          </p>
+        </div>
+      </div>
 
       <div className="cat-tiles">
         {CATEGORY_TILES.map((tile) => (

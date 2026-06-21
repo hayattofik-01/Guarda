@@ -42,16 +42,30 @@ export default function ReportPage() {
 
   return (
     <Shell>
-      <div className="flex-between" style={{ marginBottom: 16 }}>
+      <div className="flex-between report-actions" style={{ marginBottom: 16 }}>
         <h1 className="page-title" style={{ margin: 0 }}>
           Report — {report.asset}
         </h1>
-        <button className="btn secondary" onClick={() => router.back()}>
-          ← Back
-        </button>
+        <div className="row">
+          <button className="btn secondary" onClick={() => window.print()}>
+            Share / Print
+          </button>
+          <button className="btn secondary" onClick={() => router.back()}>
+            ← Back
+          </button>
+        </div>
       </div>
 
       <div className="report-hero">
+        <div className="row" style={{ gap: 18, alignItems: "center", marginBottom: 14 }}>
+          <div className={`grade-badge grade-${report.grade}`}>{report.grade}</div>
+          <div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>
+              External security score · {report.score}/100
+            </div>
+            <div style={{ fontSize: 15 }}>{report.score_summary}</div>
+          </div>
+        </div>
         <h1>{report.headline}</h1>
         <span className={`risk-pill ${RISK_CLASS[report.overall_risk] || "risk-some"}`}>
           {report.overall_risk}
@@ -61,6 +75,28 @@ export default function ReportPage() {
           {String(report.totals.findings)} finding(s)
         </p>
       </div>
+
+      {report.compliance.length > 0 && (
+        <div className="panel compliance">
+          <h3 style={{ marginTop: 0 }}>Security questionnaire readiness</h3>
+          <p className="muted" style={{ marginTop: 0 }}>
+            How your external posture answers the questions an enterprise prospect will ask.
+          </p>
+          <ul>
+            {report.compliance.map((c, i) => (
+              <li key={i}>
+                <span className={`check-mark ${c.passed ? "check-pass" : "check-fail"}`}>
+                  {c.passed ? "\u2713" : "\u2717"}
+                </span>
+                <div>
+                  <div>{c.question}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{c.detail}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {report.next_steps.length > 0 && (
         <div className="panel">

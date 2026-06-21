@@ -45,6 +45,7 @@ def create_target(
         verification_method=payload.verification_method,
         frequency=payload.frequency,
         alert_email=payload.alert_email,
+        alert_whatsapp=(payload.alert_whatsapp or None),
         github_target=(payload.github_target or None),
     )
     db.add(target)

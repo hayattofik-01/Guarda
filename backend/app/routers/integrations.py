@@ -10,6 +10,7 @@ from app.services.cala import CalaClient
 class IntegrationStatus(BaseModel):
     supabase: bool
     resend: bool
+    whatsapp: bool
     cala: bool
     shodan: bool
     censys: bool
@@ -27,6 +28,7 @@ def status(user: User = Depends(get_current_user)) -> IntegrationStatus:
     return IntegrationStatus(
         supabase=bool(settings.supabase_db_url),
         resend=bool(settings.resend_api_key),
+        whatsapp=bool(settings.twilio_account_sid and settings.twilio_auth_token),
         cala=bool(settings.cala_api_key),
         shodan=bool(settings.shodan_api_key),
         censys=bool(settings.censys_api_id and settings.censys_api_secret),

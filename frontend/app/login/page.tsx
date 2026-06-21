@@ -34,8 +34,8 @@ export default function LoginPage() {
           <span className="dot" /> Guarda
         </div>
         <p className="muted" style={{ marginTop: 0 }}>
-          We watch. We detect. We guide. — monitor your digital footprint and get
-          alerted when sensitive data is exposed.
+          Know your external security score. Sign in to check your domain, fix
+          exposures in plain English, and pass enterprise security questionnaires.
         </p>
         <form onSubmit={onSubmit}>
           <div className="field">

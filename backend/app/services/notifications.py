@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from app.config import settings
-from app.services.report import render_email_html
+from app.services.report import render_email_html, render_whatsapp_text
 
 if TYPE_CHECKING:
     from app.models import Finding
@@ -48,18 +48,42 @@ def send_email(to: str, subject: str, html: str) -> bool:
         return False
 
 
+def send_whatsapp(to: str, body: str) -> bool:
+    """Send a WhatsApp message via Twilio. No-op when not configured."""
+    if not (settings.twilio_account_sid and settings.twilio_auth_token and to):
+        return False
+    to_fmt = to if to.startswith("whatsapp:") else f"whatsapp:{to}"
+    try:
+        resp = httpx.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json",
+            data={"From": settings.twilio_whatsapp_from, "To": to_fmt, "Body": body},
+            auth=(settings.twilio_account_sid, settings.twilio_auth_token),
+            timeout=15,
+        )
+        return resp.status_code < 400
+    except httpx.HTTPError:
+        return False
+
+
 def send_sensitive_alert(
-    to: str,
     asset: str,
     flagged: list[Finding],
     report: dict,
     scan_id: str,
+    *,
+    email: str | None = None,
+    whatsapp: str | None = None,
 ) -> bool:
-    """Email the asset owner when sensitive/high-risk findings are discovered."""
+    """Alert the owner (email + WhatsApp) when sensitive findings are discovered."""
     report_url = f"{settings.public_app_url}/reports/{scan_id}"
     subject = f"[Guarda] {len(flagged)} sensitive finding(s) on {asset}"
-    html = render_email_html(report, report_url)
-    sent = send_email(to, subject, html)
+    sent = False
+    if email:
+        html = render_email_html(report, report_url)
+        sent = send_email(email, subject, html) or sent
+    if whatsapp:
+        text = render_whatsapp_text(report, report_url)
+        send_whatsapp(whatsapp, text)
     send_slack(
         f":rotating_light: Guarda found {len(flagged)} sensitive finding(s) on *{asset}*."
     )

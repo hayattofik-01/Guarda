@@ -50,6 +50,7 @@ class Severity(str, enum.Enum):
 
 
 class Frequency(str, enum.Enum):
+    hourly = "hourly"
     daily = "daily"
     weekly = "weekly"
     monthly = "monthly"
@@ -99,6 +100,8 @@ class Target(Base):
     frequency: Mapped[Frequency] = mapped_column(Enum(Frequency), default=Frequency.weekly)
     # email to alert when sensitive findings are discovered
     alert_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    # WhatsApp number (E.164, e.g. +15551234567) to alert on sensitive findings
+    alert_whatsapp: Mapped[str | None] = mapped_column(String, nullable=True)
     # optional public GitHub org/user or repo URL to scan for leaked secrets
     github_target: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

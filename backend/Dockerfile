@@ -5,7 +5,9 @@ ENV PYTHONUNBUFFERED=1 \
     NUCLEI_VERSION=3.3.7 \
     SUBFINDER_VERSION=2.6.6 \
     HTTPX_VERSION=1.6.9 \
-    GITLEAKS_VERSION=8.21.2
+    GITLEAKS_VERSION=8.21.2 \
+    THEHARVESTER_VERSION=4.6.0 \
+    PATH="/root/.local/bin:${PATH}"
 
 # System deps: git (gitleaks clones), plus fetch helpers.
 RUN apt-get update \
@@ -40,8 +42,13 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
 
-# theHarvester (passive email/host OSINT). Best-effort: build proceeds if it fails.
-RUN pip install --no-cache-dir theHarvester || echo "theHarvester install skipped"
+# theHarvester (passive email/host OSINT) from its official repo, isolated via
+# pipx so its large dependency tree never conflicts with the app's pins.
+# Best-effort: the scan pipeline skips it gracefully if the install fails.
+RUN pip install --no-cache-dir pipx \
+    && pipx install "git+https://github.com/laramies/theHarvester.git@${THEHARVESTER_VERSION}" \
+    && theHarvester --help >/dev/null 2>&1 \
+    || echo "theHarvester install skipped"
 
 COPY . .
 

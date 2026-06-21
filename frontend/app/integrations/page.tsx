@@ -7,6 +7,7 @@ import { api, IntegrationStatus } from "@/lib/api";
 const ROWS: { key: keyof IntegrationStatus; name: string; purpose: string; env: string }[] = [
   { key: "supabase", name: "Supabase", purpose: "Database (Postgres)", env: "SUPABASE_DB_URL" },
   { key: "resend", name: "Resend", purpose: "Sensitive-finding email alerts", env: "RESEND_API_KEY" },
+  { key: "whatsapp", name: "WhatsApp (Twilio)", purpose: "Sensitive-finding WhatsApp alerts", env: "TWILIO_ACCOUNT_SID/AUTH_TOKEN" },
   { key: "slack", name: "Slack", purpose: "Chat alerts (optional)", env: "SLACK_WEBHOOK_URL" },
   { key: "cala", name: "Cala.ai", purpose: "Structured data / intel layer", env: "CALA_API_KEY" },
   { key: "shodan", name: "Shodan", purpose: "Exposed host/service discovery", env: "SHODAN_API_KEY" },

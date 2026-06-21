@@ -12,6 +12,7 @@ export default function TargetsPage() {
   const [method, setMethod] = useState("dns_txt");
   const [frequency, setFrequency] = useState<Frequency>("weekly");
   const [alertEmail, setAlertEmail] = useState("");
+  const [alertWhatsapp, setAlertWhatsapp] = useState("");
   const [githubTarget, setGithubTarget] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,6 +25,15 @@ export default function TargetsPage() {
   }
   useEffect(load, []);
 
+  // Prefill the domain a visitor typed on the landing page.
+  useEffect(() => {
+    const pending = localStorage.getItem("guarda_pending_domain");
+    if (pending) {
+      setAddress(pending);
+      localStorage.removeItem("guarda_pending_domain");
+    }
+  }, []);
+
   async function onCreate(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -35,11 +45,13 @@ export default function TargetsPage() {
         verification_method: method,
         frequency,
         alert_email: alertEmail || null,
+        alert_whatsapp: alertWhatsapp || null,
         github_target: githubTarget || null,
       });
       setAddress("");
       setLabel("");
       setAlertEmail("");
+      setAlertWhatsapp("");
       setGithubTarget("");
       setFrequency("weekly");
       load();
@@ -61,7 +73,7 @@ export default function TargetsPage() {
       <h1 className="page-title">Monitored Assets</h1>
       <p className="page-sub">
         Add the domains you own. We verify ownership, then watch them on your schedule and
-        email you when something sensitive shows up.
+        alert you by email or WhatsApp when something sensitive shows up.
       </p>
 
       <div className="panel">
@@ -94,6 +106,7 @@ export default function TargetsPage() {
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value as Frequency)}
               >
+                <option value="hourly">Hourly</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
@@ -101,7 +114,7 @@ export default function TargetsPage() {
             </div>
           </div>
           <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div className="field" style={{ flex: 2, minWidth: 200 }}>
+            <div className="field" style={{ flex: 2, minWidth: 180 }}>
               <label>Alert email (where we send sensitive findings)</label>
               <input
                 type="email"
@@ -110,7 +123,15 @@ export default function TargetsPage() {
                 onChange={(e) => setAlertEmail(e.target.value)}
               />
             </div>
-            <div className="field" style={{ flex: 2, minWidth: 200 }}>
+            <div className="field" style={{ flex: 1, minWidth: 160 }}>
+              <label>WhatsApp alert (optional)</label>
+              <input
+                placeholder="+15551234567"
+                value={alertWhatsapp}
+                onChange={(e) => setAlertWhatsapp(e.target.value)}
+              />
+            </div>
+            <div className="field" style={{ flex: 2, minWidth: 180 }}>
               <label>Public GitHub repo to scan for leaks (optional)</label>
               <input
                 placeholder="owner/repo"
@@ -137,6 +158,7 @@ export default function TargetsPage() {
               <th>Status</th>
               <th>Frequency</th>
               <th>Alert email</th>
+              <th>WhatsApp</th>
               <th></th>
             </tr>
           </thead>
@@ -154,6 +176,7 @@ export default function TargetsPage() {
                 </td>
                 <td style={{ textTransform: "capitalize" }}>{t.frequency}</td>
                 <td>{t.alert_email || <span className="muted">—</span>}</td>
+                <td>{t.alert_whatsapp || <span className="muted">—</span>}</td>
                 <td style={{ textAlign: "right" }}>
                   <button className="btn danger" onClick={() => onDelete(t.id)}>
                     Delete
@@ -163,7 +186,7 @@ export default function TargetsPage() {
             ))}
             {targets.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   No assets yet. Add one above.
                 </td>
               </tr>

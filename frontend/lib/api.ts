@@ -73,7 +73,7 @@ export async function register(email: string, password: string) {
 // ---- Types ----
 export type TargetStatus = "pending" | "verified" | "failed";
 export type Severity = "info" | "low" | "medium" | "high" | "critical";
-export type Frequency = "daily" | "weekly" | "monthly";
+export type Frequency = "hourly" | "daily" | "weekly" | "monthly";
 export type FindingCategory =
   | "sensitive_info"
   | "exposed_data"
@@ -90,6 +90,7 @@ export interface Target {
   verified_at: string | null;
   frequency: Frequency;
   alert_email: string | null;
+  alert_whatsapp: string | null;
   github_target: string | null;
   created_at: string;
 }
@@ -134,8 +135,17 @@ export interface DashboardStats {
   verified_targets: number;
   total_scans: number;
   open_findings: number;
+  score: number;
+  grade: string;
+  score_summary: string;
   findings_by_severity: Record<string, number>;
   findings_by_category: Record<string, number>;
+}
+
+export interface ComplianceCheck {
+  question: string;
+  passed: boolean;
+  detail: string;
 }
 
 export interface ReportItem {
@@ -161,6 +171,10 @@ export interface Report {
   generated_at: string;
   scan_id: string;
   overall_risk: string;
+  score: number;
+  grade: string;
+  score_summary: string;
+  compliance: ComplianceCheck[];
   headline: string;
   totals: Record<string, number | Record<string, number>>;
   next_steps: string[];
@@ -176,6 +190,7 @@ export interface VerificationInstructions {
 export interface IntegrationStatus {
   supabase: boolean;
   resend: boolean;
+  whatsapp: boolean;
   cala: boolean;
   shodan: boolean;
   censys: boolean;
@@ -198,11 +213,17 @@ export const api = {
     verification_method?: string;
     frequency?: Frequency;
     alert_email?: string | null;
+    alert_whatsapp?: string | null;
     github_target?: string | null;
   }) => request<Target>("/api/targets", { method: "POST", body: JSON.stringify(payload) }),
   updateTarget: (
     id: string,
-    payload: { frequency?: Frequency; alert_email?: string | null; github_target?: string | null },
+    payload: {
+      frequency?: Frequency;
+      alert_email?: string | null;
+      alert_whatsapp?: string | null;
+      github_target?: string | null;
+    },
   ) => request<Target>(`/api/targets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteTarget: (id: string) => request<void>(`/api/targets/${id}`, { method: "DELETE" }),
   verification: (id: string) =>

@@ -127,6 +127,10 @@ export default function TargetDetailPage() {
             <div>{target.alert_email || <span className="muted">not set</span>}</div>
           </div>
           <div>
+            <div className="label">WhatsApp alert</div>
+            <div>{target.alert_whatsapp || <span className="muted">not set</span>}</div>
+          </div>
+          <div>
             <div className="label">GitHub repo</div>
             <div>{target.github_target || <span className="muted">none</span>}</div>
           </div>

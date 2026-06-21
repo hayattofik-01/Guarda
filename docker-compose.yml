@@ -27,6 +27,13 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://guarda:guarda@db:5432/guarda
       REDIS_URL: redis://redis:6379/0
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Guarda <onboarding@resend.dev>}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-whatsapp:+14155238886}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:3000}
     ports:
       - "8000:8000"
     depends_on:
@@ -42,6 +49,13 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://guarda:guarda@db:5432/guarda
       REDIS_URL: redis://redis:6379/0
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Guarda <onboarding@resend.dev>}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-whatsapp:+14155238886}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:3000}
     depends_on:
       db:
         condition: service_healthy
@@ -55,6 +69,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://guarda:guarda@db:5432/guarda
       REDIS_URL: redis://redis:6379/0
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL:-}
     depends_on:
       - redis
 
