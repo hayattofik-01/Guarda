@@ -20,6 +20,15 @@ from app.routers import (
 Base.metadata.create_all(bind=engine)
 ensure_schema()
 
+# After a restart (e.g. an OOM-killed scan task on a small free-tier box),
+# reclaim any scans left stuck "running" so the UI never spins forever.
+try:
+    from app.services.scan_runner import reclaim_stuck_scans
+
+    reclaim_stuck_scans()
+except Exception:  # noqa: BLE001 - best-effort startup cleanup
+    pass
+
 app = FastAPI(title=f"{settings.app_name} API", version="0.1.0")
 
 app.add_middleware(

@@ -71,7 +71,25 @@ def get_scan(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Scan:
-    return _owned_scan(scan_id, user, db)
+    scan = _owned_scan(scan_id, user, db)
+    # If this scan has been stuck (e.g. its in-process task was OOM-killed),
+    # reclaim it so the poller stops spinning and lands on the report.
+    if scan.status in (ScanStatus.queued, ScanStatus.running):
+        from datetime import UTC, datetime, timedelta
+
+        from app.config import settings
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=settings.scan_stuck_after_seconds)
+        created = scan.created_at
+        if created is not None and created.tzinfo is None:
+            created = created.replace(tzinfo=UTC)
+        if created is not None and created < cutoff:
+            scan.status = ScanStatus.failed
+            scan.finished_at = scan.finished_at or datetime.now(UTC)
+            scan.error = scan.error or "Scan did not finish (timed out or interrupted)."
+            db.commit()
+            db.refresh(scan)
+    return scan
 
 
 @router.get("/{scan_id}/report", response_model=Report)

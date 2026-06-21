@@ -26,7 +26,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (!headers.has("Content-Type") && options.body && !(options.body instanceof URLSearchParams)) {
+  if (
+    !headers.has("Content-Type") &&
+    options.body &&
+    !(options.body instanceof URLSearchParams) &&
+    !(options.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -41,7 +46,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     let detail = res.statusText;
     try {
       const body = await res.json();
-      detail = body.detail || detail;
+      const d = body.detail;
+      if (typeof d === "string") {
+        detail = d;
+      } else if (Array.isArray(d)) {
+        detail = d.map((e) => e?.msg || JSON.stringify(e)).join("; ");
+      } else if (d) {
+        detail = typeof d === "object" ? JSON.stringify(d) : String(d);
+      }
     } catch {
       /* ignore */
     }

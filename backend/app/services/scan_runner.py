@@ -8,8 +8,11 @@ worker-based deployment.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import select
+
+from app.config import settings
 from app.database import SessionLocal
 from app.models import (
     Finding,
@@ -55,8 +58,12 @@ def _run_footprint_pipeline(target: Target) -> tuple[list[dict], list[str], list
     else:
         errors.append("subfinder: not installed, skipped")
 
-    # 2. Probe which hosts are live (include the root domain).
-    hosts = sorted({domain, *subdomains})
+    # 2. Probe which hosts are live (always include the root domain). Cap the
+    # host list: probing hundreds of hosts with tech-detect is the main memory
+    # spike that OOM-kills a small free-tier box. All subdomains are still
+    # reported as footprint findings above; this only bounds the liveness probe.
+    others = sorted(s for s in set(subdomains) if s != domain)
+    hosts = [domain, *others][: settings.httpx_max_hosts]
     live_urls: list[str] = []
     if httpx_scan.available():
         try:
@@ -103,6 +110,38 @@ def _run_footprint_pipeline(target: Target) -> tuple[list[dict], list[str], list
             errors.append(f"theharvester: {exc}")
 
     return findings, raw_chunks, errors
+
+
+def reclaim_stuck_scans(db=None) -> int:
+    """Mark scans stuck in ``queued``/``running`` as failed.
+
+    On a small free-tier box the in-process scan task can be OOM-killed before
+    it ever marks the scan complete, leaving it ``running`` forever and the UI
+    spinning. Any scan older than ``scan_stuck_after_seconds`` is reclaimed so
+    the report (with whatever partial findings exist) becomes reachable.
+    Returns the number of scans reclaimed.
+    """
+    owns_session = db is None
+    if owns_session:
+        db = SessionLocal()
+    try:
+        cutoff = datetime.now(UTC) - timedelta(seconds=settings.scan_stuck_after_seconds)
+        stale = db.scalars(
+            select(Scan).where(
+                Scan.status.in_([ScanStatus.queued, ScanStatus.running]),
+                Scan.created_at < cutoff,
+            )
+        ).all()
+        for scan in stale:
+            scan.status = ScanStatus.failed
+            scan.finished_at = scan.finished_at or datetime.now(UTC)
+            scan.error = (scan.error or "Scan did not finish (timed out or interrupted).")
+        if stale:
+            db.commit()
+        return len(stale)
+    finally:
+        if owns_session:
+            db.close()
 
 
 def execute_scan(scan_id: str) -> str:

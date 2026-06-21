@@ -25,11 +25,12 @@ def run(domain: str) -> tuple[list[str], str]:
         "subfinder",
         "-d", domain,
         "-silent",
-        "-all",
-        "-timeout", "20",
+        "-timeout", "15",
         "-max-time", str(settings.subfinder_max_time // 60 or 1),
         "-disable-update-check",
     ]
+    if settings.subfinder_use_all_sources:
+        cmd.append("-all")
     proc = subprocess.run(
         cmd,
         capture_output=True,

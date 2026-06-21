@@ -35,6 +35,7 @@ def run(hosts: list[str]) -> tuple[list[dict], str]:
         "-status-code",
         "-no-color",
         "-timeout", "10",
+        "-threads", str(settings.httpx_threads),
         "-disable-update-check",
     ]
     try:

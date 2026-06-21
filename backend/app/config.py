@@ -38,19 +38,32 @@ class Settings(BaseSettings):
     nuclei_tags: str = "exposure,exposures,misconfig,config,backup,logs,secret,token"
     nuclei_severity: str = "low,medium,high,critical"
     scan_timeout_seconds: int = 60 * 30
-    subfinder_max_time: int = 60 * 5
+    # A scan stuck in "running"/"queued" longer than this (e.g. the in-process
+    # task was OOM-killed on a small free-tier box) is reclaimed and marked
+    # failed so the UI never spins forever.
+    scan_stuck_after_seconds: int = 60 * 6
+    # subfinder is bounded so onboarding completes fast; the default (non-`-all`)
+    # source set is lighter on memory, which matters on 512MB free instances.
+    subfinder_max_time: int = 60
+    subfinder_use_all_sources: bool = False
     # nuclei is the heaviest step; bound it so onboarding scans stay snappy on
     # small (free-tier) instances. Caps targets and enforces an overall deadline
     # (partial results are kept if the deadline is hit).
-    nuclei_max_targets: int = 15
-    nuclei_deadline_seconds: int = 90
-    nuclei_concurrency: int = 25
-    nuclei_rate_limit: int = 150
+    nuclei_max_targets: int = 10
+    nuclei_deadline_seconds: int = 45
+    nuclei_concurrency: int = 8
+    nuclei_rate_limit: int = 80
     nuclei_request_timeout: int = 5
-    # theHarvester and httpx can stall on slow public sources / large host lists;
-    # bound each so an in-process scan finishes quickly (partial output is kept).
-    harvester_deadline_seconds: int = 120
-    httpx_deadline_seconds: int = 120
+    # theHarvester and httpx can stall on slow public sources / large host lists
+    # and spike memory; bound each tightly so an in-process scan finishes quickly
+    # without OOM-killing the box (partial output is kept).
+    harvester_deadline_seconds: int = 45
+    httpx_deadline_seconds: int = 45
+    # Cap how many discovered hosts httpx probes and its thread count. Probing
+    # hundreds of hosts with tech-detect is the main memory spike that OOM-kills
+    # a 512MB instance; all subdomains are still reported as footprint findings.
+    httpx_max_hosts: int = 60
+    httpx_threads: int = 12
 
     # Devin API (powers the AI remediation "advice" agent; optional)
     devin_api_key: str = ""
