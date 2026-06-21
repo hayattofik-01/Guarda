@@ -155,10 +155,33 @@ export interface GdprCheck {
   detail: string;
 }
 
+export interface GdprLeader {
+  name: string;
+  role: string;
+}
+
+export interface GdprOrganisation {
+  entity_id: string;
+  name: string;
+  legal_name: string | null;
+  industry: string | null;
+  employees: string | null;
+  headquarters: string | null;
+  leadership: GdprLeader[];
+  ultimate_parent: string | null;
+}
+
+export interface GdprIncident {
+  summary: string;
+  sources: string[];
+}
+
 export interface GdprAssessment {
   source: "cala" | "heuristic";
   summary: string;
   checks: GdprCheck[];
+  organisation: GdprOrganisation | null;
+  incidents: GdprIncident[];
 }
 
 export interface ReportItem {

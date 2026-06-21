@@ -32,9 +32,7 @@ def test_heuristic_flags_leaked_secret_and_exposed_data():
     ]
     result = gdpr.heuristic_assessment(findings)
     failed = [c for c in result["checks"] if not c["passed"]]
-    # security-of-processing (Art. 32) checks should fail
     assert any("32" in c["article"] for c in failed)
-    # breach-notification readiness fails because of the high-severity exposure
     assert any("33" in c["article"] and not c["passed"] for c in result["checks"])
 
 
@@ -45,58 +43,49 @@ def test_heuristic_flags_harvestable_emails():
     assert minimisation and not minimisation[0]["passed"]
 
 
-def test_parse_assessment_extracts_json_from_noise():
-    text = 'Sure! Here is the result:\n{"summary": "ok", "checks": [' \
-        '{"article": "Art. 32", "requirement": "secure", "passed": false, "detail": "x"}]}'
-    parsed = gdpr._parse_assessment(text)
-    assert parsed is not None
-    assert parsed["source"] == "cala"
-    assert parsed["checks"][0]["passed"] is False
-    assert parsed["checks"][0]["article"] == "Art. 32"
-
-
-def test_parse_assessment_rejects_garbage():
-    assert gdpr._parse_assessment("no json here") is None
-    assert gdpr._parse_assessment('{"summary": "x"}') is None
-
-
-def test_extract_text_from_mcp_content():
-    result = {"content": [{"type": "text", "text": "hello"}, {"type": "text", "text": "world"}]}
-    assert gdpr._extract_text(result) == "hello\nworld"
-
-
-def test_assessment_falls_back_to_heuristic_when_cala_disabled(monkeypatch):
-    monkeypatch.setattr(gdpr, "_cala_assessment", lambda *a, **k: None)
-    result = gdpr.gdpr_assessment("acme.io", [], scan_id="scan-xyz")
+def test_assessment_stays_heuristic_when_cala_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        gdpr,
+        "company_intel",
+        lambda domain: {"available": False, "organisation": None, "incidents": []},
+    )
+    result = gdpr.gdpr_assessment("acme.io", [], scan_id="scan-none")
     assert result["source"] == "heuristic"
+    assert result["organisation"] is None
+    assert result["incidents"] == []
 
 
-def test_cala_error_result_falls_back(monkeypatch):
-    class FakeClient:
-        enabled = True
-
-        def query(self, prompt):
-            err = "HTTP 402 {'detail': 'Insufficient balance'}"
-            return {"content": [{"type": "text", "text": err}], "isError": True}
-
-    monkeypatch.setattr(gdpr, "CalaClient", FakeClient)
-    assert gdpr._cala_assessment("acme.io", []) is None
-
-
-def test_cala_success_result_is_used(monkeypatch):
-    class FakeClient:
-        enabled = True
-
-        def query(self, prompt):
-            return {
-                "content": [{"type": "text", "text":
-                    '{"summary":"ok","checks":[{"article":"Art. 32",'
-                    '"requirement":"secure","passed":true,"detail":"fine"}]}'}],
-                "isError": False,
-            }
-
-    monkeypatch.setattr(gdpr, "CalaClient", FakeClient)
-    result = gdpr._cala_assessment("acme.io", [])
-    assert result is not None
+def test_assessment_enriched_with_cala_incident(monkeypatch):
+    intel = {
+        "available": True,
+        "organisation": {
+            "name": "Acme Inc",
+            "industry": "SaaS",
+            "leadership": [],
+            "employees": "200",
+        },
+        "incidents": [
+            {"summary": "2021 breach exposed 1M user records.", "sources": ["https://news/x"]}
+        ],
+    }
+    monkeypatch.setattr(gdpr, "company_intel", lambda domain: intel)
+    result = gdpr.gdpr_assessment("acme.io", [], scan_id="scan-cala")
     assert result["source"] == "cala"
-    assert result["checks"][0]["article"] == "Art. 32"
+    assert result["organisation"]["name"] == "Acme Inc"
+    assert result["incidents"][0]["sources"] == ["https://news/x"]
+    breach = [c for c in result["checks"] if c["article"] == "Art. 33 · 34"]
+    assert breach and breach[0]["passed"] is False
+    assert "Acme Inc" in result["summary"]
+
+
+def test_assessment_cala_no_incident_passes_breach_check(monkeypatch):
+    intel = {
+        "available": True,
+        "organisation": {"name": "Acme Inc", "leadership": []},
+        "incidents": [],
+    }
+    monkeypatch.setattr(gdpr, "company_intel", lambda domain: intel)
+    result = gdpr.gdpr_assessment("acme.io", [], scan_id="scan-clean")
+    assert result["source"] == "cala"
+    breach = [c for c in result["checks"] if c["article"] == "Art. 33 · 34"]
+    assert breach and breach[0]["passed"] is True

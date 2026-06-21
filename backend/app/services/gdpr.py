@@ -4,20 +4,21 @@ A SaaS founder selling to enterprise gets asked "are you GDPR compliant?" on
 every security questionnaire. This turns Guarda's external findings into a
 plain-English, per-article GDPR posture.
 
-The assessment is produced by **Cala.ai** (queried over its MCP API) when a key
-is configured — Cala acts as the structured legal/regulatory reasoning layer.
-If Cala is unavailable or returns something unusable, we fall back to a
-deterministic heuristic so a report is never blank.
+The per-article checks are derived deterministically from the scan's findings so
+a report is never blank. **Cala.ai** then enriches the assessment with verified
+public intelligence (``app.services.cala_intel``): the organisation behind the
+domain is identified and resolved to a verified profile, and publicly reported
+cyber incidents feed the Art. 33/34 breach-notification posture (with source
+citations). When Cala contributes data the assessment is labelled ``cala``;
+otherwise it stays ``heuristic``.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import re
 from typing import TYPE_CHECKING, Any
 
-from app.services.cala import CalaClient, CalaError
+from app.services.cala_intel import company_intel
 
 if TYPE_CHECKING:
     from app.models import Finding
@@ -120,99 +121,42 @@ def heuristic_assessment(findings: list[Finding]) -> dict:
     return {"source": "heuristic", "summary": summary, "checks": checks}
 
 
-def _findings_brief(findings: list[Finding]) -> str:
-    b = _buckets(findings)
-    lines = [
-        f"- Total actionable exposures: {len(b['actionable'])}",
-        f"- Leaked secrets/credentials: {len(b['leaked_secrets'])}",
-        f"- Exposed files/admin panels: {len(b['exposed'])}",
-        f"- Harvestable staff emails: {len(b['leaked_emails'])}",
-        f"- Critical/high severity: {len(b['high_risk'])}",
-    ]
-    samples = [
-        f"  * [{_val(f.severity)}/{_val(f.category)}] {getattr(f, 'title', '')}"
-        for f in b["actionable"][:10]
-    ]
-    if samples:
-        lines.append("Sample findings:")
-        lines.extend(samples)
-    return "\n".join(lines)
+def _apply_intel(base: dict, intel: dict[str, Any]) -> dict:
+    """Enrich the deterministic assessment with Cala's verified public intelligence."""
+    result = {
+        "source": "heuristic",
+        "summary": base["summary"],
+        "checks": list(base["checks"]),
+        "organisation": None,
+        "incidents": [],
+    }
+    if not intel.get("available"):
+        return result
 
+    result["source"] = "cala"
+    result["organisation"] = intel.get("organisation")
+    incidents = intel.get("incidents") or []
+    result["incidents"] = incidents
 
-_PROMPT = """You are a GDPR data-protection analyst. A SaaS company at domain \
-"{domain}" was scanned for what is publicly visible about it from the outside \
-(OSINT recon). Assess its GDPR compliance posture based ONLY on this external \
-exposure data:
+    if incidents:
+        detail = incidents[0]["summary"]
+        passed = False
+    else:
+        detail = "Cala found no publicly reported breach affecting this organisation."
+        passed = True
+    result["checks"].append({
+        "article": "Art. 33 · 34",
+        "requirement": "No publicly reported breach of personal data on record",
+        "passed": passed,
+        "detail": detail,
+    })
 
-{brief}
-
-Return STRICT JSON (no prose, no markdown fences) with this exact shape:
-{{"summary": "<2-3 sentence plain-English GDPR posture for a non-lawyer founder>",
-  "checks": [{{"article": "<GDPR article, e.g. Art. 32>",
-    "requirement": "<the obligation in plain English>",
-    "passed": <true|false>,
-    "detail": "<one specific sentence tied to the findings>"}}]}}
-Include 4-6 checks covering at least: security of processing (Art. 32), \
-confidentiality/integrity of personal data (Art. 5(1)(f)), and breach \
-notification readiness (Art. 33)."""
-
-
-def _extract_text(result: dict[str, Any]) -> str:
-    """Pull human-readable text out of an MCP tools/call result."""
-    content = result.get("content")
-    if isinstance(content, list):
-        parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("text")]
-        if parts:
-            return "\n".join(parts)
-    for key in ("text", "answer", "output", "result", "message"):
-        v = result.get(key)
-        if isinstance(v, str) and v.strip():
-            return v
-    return json.dumps(result)
-
-
-def _parse_assessment(text: str) -> dict | None:
-    """Parse the first JSON object out of Cala's reply and validate its shape."""
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        return None
-    try:
-        data = json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return None
-    checks = data.get("checks")
-    if not isinstance(checks, list) or not checks:
-        return None
-    norm: list[dict] = []
-    for c in checks:
-        if not isinstance(c, dict) or "passed" not in c:
-            continue
-        norm.append({
-            "article": str(c.get("article", "GDPR")),
-            "requirement": str(c.get("requirement", "")),
-            "passed": bool(c.get("passed")),
-            "detail": str(c.get("detail", "")),
-        })
-    if not norm:
-        return None
-    summary = str(data.get("summary", "")) or "GDPR posture assessed from your external exposures."
-    return {"source": "cala", "summary": summary, "checks": norm}
-
-
-def _cala_assessment(domain: str, findings: list[Finding]) -> dict | None:
-    client = CalaClient()
-    if not client.enabled:
-        return None
-    prompt = _PROMPT.format(domain=domain, brief=_findings_brief(findings))
-    try:
-        result = client.query(prompt)
-    except (CalaError, Exception) as exc:  # noqa: BLE001 - best-effort, never break a report
-        logger.warning("Cala GDPR assessment failed, using heuristic: %s", exc)
-        return None
-    if result.get("isError"):
-        logger.warning("Cala returned an error, using heuristic: %s", _extract_text(result))
-        return None
-    return _parse_assessment(_extract_text(result))
+    org = intel.get("organisation") or {}
+    org_name = org.get("name")
+    verified = f" Organisation verified against Cala public records ({org_name})." if org_name \
+        else " Enriched with Cala public records."
+    result["summary"] = base["summary"] + verified
+    return result
 
 
 def _signature(findings: list[Finding]) -> str:
@@ -223,11 +167,13 @@ def _signature(findings: list[Finding]) -> str:
 def gdpr_assessment(
     domain: str, findings: list[Finding], scan_id: str | None = None
 ) -> dict:
-    """GDPR posture for a scan — Cala-powered when available, heuristic otherwise."""
+    """GDPR posture for a scan — deterministic checks enriched with Cala intel."""
     cache_key = f"{scan_id}:{_signature(findings)}" if scan_id else None
     if cache_key and cache_key in _CACHE:
         return _CACHE[cache_key]
-    result = _cala_assessment(domain, findings) or heuristic_assessment(findings)
+    base = heuristic_assessment(findings)
+    intel = company_intel(domain)
+    result = _apply_intel(base, intel)
     if cache_key:
         _CACHE[cache_key] = result
     return result

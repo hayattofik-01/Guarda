@@ -127,6 +127,61 @@ export default function ReportPage() {
               </li>
             ))}
           </ul>
+
+          {report.gdpr.organisation && (
+            <div className="cala-org">
+              <div className="cala-org-head">
+                Organisation verified by Cala
+              </div>
+              <dl className="cala-facts">
+                {report.gdpr.organisation.legal_name && (
+                  <div><dt>Legal name</dt><dd>{report.gdpr.organisation.legal_name}</dd></div>
+                )}
+                {report.gdpr.organisation.industry && (
+                  <div><dt>Industry</dt><dd>{report.gdpr.organisation.industry}</dd></div>
+                )}
+                {report.gdpr.organisation.employees && (
+                  <div><dt>Employees</dt><dd>{report.gdpr.organisation.employees}</dd></div>
+                )}
+                {report.gdpr.organisation.headquarters && (
+                  <div><dt>Headquarters</dt><dd>{report.gdpr.organisation.headquarters}</dd></div>
+                )}
+                {report.gdpr.organisation.ultimate_parent && (
+                  <div><dt>Ultimate parent</dt><dd>{report.gdpr.organisation.ultimate_parent}</dd></div>
+                )}
+                {report.gdpr.organisation.leadership.length > 0 && (
+                  <div>
+                    <dt>Leadership</dt>
+                    <dd>
+                      {report.gdpr.organisation.leadership
+                        .map((l) => `${l.name} (${l.role})`)
+                        .join(", ")}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
+
+          {report.gdpr.incidents.length > 0 && (
+            <div className="cala-incidents">
+              <div className="cala-org-head">Publicly reported incidents (via Cala)</div>
+              {report.gdpr.incidents.map((inc, i) => (
+                <div key={i} className="cala-incident">
+                  <p style={{ margin: "4px 0" }}>{inc.summary}</p>
+                  {inc.sources.length > 0 && (
+                    <div className="cala-sources">
+                      {inc.sources.map((s, j) => (
+                        <a key={j} href={s} target="_blank" rel="noopener noreferrer">
+                          Source {j + 1}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
