@@ -1,0 +1,106 @@
+# Render Blueprint for Guarda.
+# Brings up the full stack: Postgres + Redis + FastAPI API + Celery worker + Next.js UI.
+# Deploy: Render Dashboard → Blueprints → New Blueprint Instance → pick this repo.
+# Secrets marked `sync: false` must be filled in the Render dashboard after the first sync.
+databases:
+  - name: guarda-db
+    databaseName: guarda
+    user: guarda
+    plan: free # NOTE: free Postgres expires ~30 days after creation; upgrade for production.
+
+services:
+  # ---- Redis (Celery broker/result backend) ----
+  - type: redis
+    name: guarda-redis
+    plan: free
+    ipAllowList: [] # internal-only (no public access)
+
+  # ---- FastAPI backend ----
+  - type: web
+    name: guarda-backend
+    runtime: docker
+    plan: free # free web services sleep after ~15 min idle; upgrade to "starter" to keep warm.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: guarda-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: guarda-redis
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://guarda-frontend.onrender.com
+      - key: PUBLIC_APP_URL
+        value: https://guarda-frontend.onrender.com
+      - key: CALA_MCP_URL
+        value: https://api.cala.ai/mcp/
+      - key: CALA_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: Guarda <onboarding@resend.dev>
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        value: whatsapp:+14155238886
+
+  # ---- Celery worker (runs scans; -B embeds beat for scheduled scans) ----
+  # NOTE: Render background workers have NO free tier — this requires a paid instance.
+  - type: worker
+    name: guarda-worker
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: celery -A app.worker.celery_app.celery_app worker -B --loglevel=info --concurrency=2
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: guarda-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: guarda-redis
+          property: connectionString
+      - key: PUBLIC_APP_URL
+        value: https://guarda-frontend.onrender.com
+      - key: CALA_MCP_URL
+        value: https://api.cala.ai/mcp/
+      - key: CALA_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: Guarda <onboarding@resend.dev>
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        value: whatsapp:+14155238886
+
+  # ---- Next.js frontend ----
+  # NEXT_PUBLIC_API_URL is baked at build time; Render passes this env var as the
+  # Dockerfile ARG of the same name. It must point at the deployed backend URL.
+  - type: web
+    name: guarda-frontend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    autoDeployTrigger: commit
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://guarda-backend.onrender.com
