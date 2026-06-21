@@ -49,6 +49,19 @@ class Severity(str, enum.Enum):
     critical = "critical"
 
 
+class Frequency(str, enum.Enum):
+    daily = "daily"
+    weekly = "weekly"
+    monthly = "monthly"
+
+
+class FindingCategory(str, enum.Enum):
+    sensitive_info = "sensitive_info"      # leaked secrets, exposed emails/credentials
+    exposed_data = "exposed_data"          # exposed files/dirs/panels/.env/.git
+    reputation_risk = "reputation_risk"    # takeover-able assets, leaked info harming brand
+    footprint = "footprint"                # discovered assets (subdomains/hosts)
+
+
 class FindingStatus(str, enum.Enum):
     open = "open"
     fixed = "fixed"
@@ -82,8 +95,12 @@ class Target(Base):
     )
     verification_token: Mapped[str] = mapped_column(String, default=_uuid)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    # cron-like schedule string, null = manual only
-    schedule: Mapped[str | None] = mapped_column(String, nullable=True)
+    # how often Guarda re-scans this asset
+    frequency: Mapped[Frequency] = mapped_column(Enum(Frequency), default=Frequency.weekly)
+    # email to alert when sensitive findings are discovered
+    alert_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    # optional public GitHub org/user or repo URL to scan for leaked secrets
+    github_target: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     owner: Mapped[User] = relationship(back_populates="targets")
@@ -118,6 +135,9 @@ class Finding(Base):
     title: Mapped[str] = mapped_column(String)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     severity: Mapped[Severity] = mapped_column(Enum(Severity), default=Severity.info, index=True)
+    category: Mapped[FindingCategory] = mapped_column(
+        Enum(FindingCategory), default=FindingCategory.exposed_data, index=True
+    )
     status: Mapped[FindingStatus] = mapped_column(
         Enum(FindingStatus), default=FindingStatus.open, index=True
     )
@@ -125,8 +145,10 @@ class Finding(Base):
     host: Mapped[str | None] = mapped_column(String, nullable=True)
     port: Mapped[int | None] = mapped_column(Integer, nullable=True)
     service: Mapped[str | None] = mapped_column(String, nullable=True)
-    # source scanner: nmap | nuclei
-    source: Mapped[str] = mapped_column(String, default="nmap")
+    # source scanner: subfinder | httpx | nuclei | gitleaks | theharvester
+    source: Mapped[str] = mapped_column(String, default="nuclei")
+    # the discovered evidence/location (URL, file path, host, repo, etc.)
+    location: Mapped[str | None] = mapped_column(String, nullable=True)
     cve_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     cvss_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     # prioritization: blends cvss + exploit intel (e.g. CISA KEV / EPSS / Cala)

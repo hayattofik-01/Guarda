@@ -7,6 +7,8 @@ from sqlalchemy import select
 from app.database import SessionLocal
 from app.models import (
     Finding,
+    FindingCategory,
+    Frequency,
     Scan,
     ScanStatus,
     Severity,
@@ -15,14 +17,93 @@ from app.models import (
 )
 from app.services.enrichment import compute_priority, is_known_exploited
 from app.worker.celery_app import celery_app
-from app.worker.scanners import nmap_scan, nuclei_scan
+from app.worker.scanners import (
+    gitleaks_scan,
+    httpx_scan,
+    nuclei_scan,
+    subfinder_scan,
+    theharvester_scan,
+)
 
-# Recognized schedule keywords -> minimum interval between automated scans.
-SCHEDULE_INTERVALS = {
-    "hourly": timedelta(hours=1),
-    "daily": timedelta(days=1),
-    "weekly": timedelta(weeks=1),
+# How often each frequency triggers an automated scan.
+FREQUENCY_INTERVALS = {
+    Frequency.daily: timedelta(days=1),
+    Frequency.weekly: timedelta(weeks=1),
+    Frequency.monthly: timedelta(days=30),
 }
+
+# Findings in these categories (or at/above high severity) trigger an email alert.
+_ALERT_CATEGORIES = {FindingCategory.sensitive_info, FindingCategory.reputation_risk}
+_ALERT_SEVERITIES = {Severity.high, Severity.critical}
+
+
+def _run_footprint_pipeline(target: Target) -> tuple[list[dict], list[str], list[str]]:
+    """Run the OSINT pipeline. Return (findings, raw_chunks, errors)."""
+    findings: list[dict] = []
+    raw_chunks: list[str] = []
+    errors: list[str] = []
+    domain = target.address
+
+    # 1. Passive subdomain discovery.
+    subdomains: list[str] = []
+    if subfinder_scan.available():
+        try:
+            subdomains, raw = subfinder_scan.run(domain)
+            findings.extend(subfinder_scan.to_findings(subdomains, domain))
+            raw_chunks.append(f"### subfinder\n{raw}")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"subfinder: {exc}")
+    else:
+        errors.append("subfinder: not installed, skipped")
+
+    # 2. Probe which hosts are live (include the root domain).
+    hosts = sorted({domain, *subdomains})
+    live_urls: list[str] = []
+    if httpx_scan.available():
+        try:
+            results, raw = httpx_scan.run(hosts)
+            findings.extend(httpx_scan.to_findings(results))
+            live_urls = httpx_scan.live_urls(results)
+            raw_chunks.append(f"### httpx\n{raw}")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"httpx: {exc}")
+    else:
+        errors.append("httpx: not installed, skipped")
+        live_urls = [domain]
+
+    # 3. Exposure/misconfiguration checks on live endpoints.
+    if nuclei_scan.available():
+        try:
+            nf, raw = nuclei_scan.run(live_urls or [domain])
+            findings.extend(nf)
+            raw_chunks.append(f"### nuclei\n{raw}")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"nuclei: {exc}")
+    else:
+        errors.append("nuclei: not installed, skipped")
+
+    # 4. Leaked secrets in public source code (optional, when a repo is provided).
+    if target.github_target:
+        if gitleaks_scan.available():
+            try:
+                gf, raw = gitleaks_scan.run(target.github_target)
+                findings.extend(gf)
+                raw_chunks.append(f"### gitleaks\n{raw[:50_000]}")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"gitleaks: {exc}")
+        else:
+            errors.append("gitleaks: not installed, skipped")
+
+    # 5. Leaked emails/hosts from public OSINT sources (best-effort).
+    if theharvester_scan.available():
+        try:
+            hf, raw = theharvester_scan.run(domain)
+            findings.extend(hf)
+            raw_chunks.append(f"### theharvester\n{raw[:50_000]}")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"theharvester: {exc}")
+
+    return findings, raw_chunks, errors
 
 
 @celery_app.task(name="app.worker.tasks.run_scan")
@@ -43,24 +124,12 @@ def run_scan(scan_id: str) -> str:
         scan.started_at = datetime.now(UTC)
         db.commit()
 
-        raw_chunks: list[str] = []
-        all_findings: list[dict] = []
-        errors: list[str] = []
+        all_findings, raw_chunks, errors = _run_footprint_pipeline(target)
 
-        for scanner in (nmap_scan, nuclei_scan):
-            name = scanner.__name__.split(".")[-1]
-            if not scanner.available():
-                errors.append(f"{name}: not installed, skipped")
-                continue
-            try:
-                findings, raw = scanner.run(target.address)
-                all_findings.extend(findings)
-                raw_chunks.append(f"### {name}\n{raw}")
-            except Exception as exc:  # noqa: BLE001 - record and continue
-                errors.append(f"{name}: {exc}")
-
+        stored: list[Finding] = []
         for data in all_findings:
             severity = Severity(data.get("severity", "info"))
+            category = FindingCategory(data.get("category", "exposed_data"))
             cve_id = data.get("cve_id")
             cvss = data.get("cvss_score")
             priority = compute_priority(severity.value, cvss, cve_id)
@@ -68,35 +137,36 @@ def run_scan(scan_id: str) -> str:
             if is_known_exploited(cve_id):
                 kev_note = "[KEV] Actively exploited per CISA Known-Exploited-Vulnerabilities."
                 description = f"{kev_note} {description or ''}".strip()
-            db.add(
-                Finding(
-                    scan_id=scan.id,
-                    title=data["title"],
-                    description=description,
-                    severity=severity,
-                    host=data.get("host"),
-                    port=data.get("port"),
-                    service=data.get("service"),
-                    source=data.get("source", "nmap"),
-                    cve_id=cve_id,
-                    cvss_score=cvss,
-                    priority_score=priority,
-                    remediation=data.get("remediation"),
-                    reference=data.get("reference"),
-                )
+            finding = Finding(
+                scan_id=scan.id,
+                title=data["title"],
+                description=description,
+                severity=severity,
+                category=category,
+                host=data.get("host"),
+                port=data.get("port"),
+                service=data.get("service"),
+                source=data.get("source", "nuclei"),
+                location=data.get("location"),
+                cve_id=cve_id,
+                cvss_score=cvss,
+                priority_score=priority,
+                remediation=data.get("remediation"),
+                reference=data.get("reference"),
             )
+            db.add(finding)
+            stored.append(finding)
 
         scan.raw_output = "\n\n".join(raw_chunks)[:500_000]
         scan.finished_at = datetime.now(UTC)
-        if all_findings or not errors:
-            scan.status = ScanStatus.completed
-        else:
-            scan.status = ScanStatus.failed
+        # A scan is "completed" if at least one scanner ran; only fully-failed runs fail.
+        ran_any = len(raw_chunks) > 0
+        scan.status = ScanStatus.completed if ran_any else ScanStatus.failed
         if errors:
             scan.error = "; ".join(errors)
         db.commit()
 
-        _notify(target, len(all_findings))
+        _alert_if_sensitive(db, target, scan, stored)
         return scan.status.value
     finally:
         db.close()
@@ -104,18 +174,16 @@ def run_scan(scan_id: str) -> str:
 
 @celery_app.task(name="app.worker.tasks.enqueue_due_scans")
 def enqueue_due_scans() -> int:
-    """Periodic task: enqueue scans for verified targets whose schedule is due."""
+    """Periodic task: enqueue scans for verified assets whose frequency is due."""
     db = SessionLocal()
     enqueued = 0
     try:
         now = datetime.now(UTC)
         targets = db.scalars(
-            select(Target).where(
-                Target.status == TargetStatus.verified, Target.schedule.is_not(None)
-            )
+            select(Target).where(Target.status == TargetStatus.verified)
         )
         for target in targets:
-            interval = SCHEDULE_INTERVALS.get((target.schedule or "").lower())
+            interval = FREQUENCY_INTERVALS.get(target.frequency)
             if interval is None:
                 continue
             last = db.scalar(
@@ -140,11 +208,22 @@ def enqueue_due_scans() -> int:
         db.close()
 
 
-def _notify(target: Target, finding_count: int) -> None:
-    """Best-effort Slack/email alert. No-op when not configured."""
-    from app.services.notifications import send_scan_complete
+def _alert_if_sensitive(db, target: Target, scan: Scan, findings: list[Finding]) -> None:
+    """Email the user's alert address when sensitive findings are discovered."""
+    if not target.alert_email:
+        return
+    flagged = [
+        f
+        for f in findings
+        if f.category in _ALERT_CATEGORIES or f.severity in _ALERT_SEVERITIES
+    ]
+    if not flagged:
+        return
+    from app.services.notifications import send_sensitive_alert
+    from app.services.report import build_report
 
     try:
-        send_scan_complete(target.address, finding_count)
-    except Exception:
+        report = build_report(target, scan, findings)
+        send_sensitive_alert(target.alert_email, target.address, flagged, report, scan.id)
+    except Exception:  # noqa: BLE001 - alerts are best-effort
         pass

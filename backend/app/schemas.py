@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models import (
+    FindingCategory,
     FindingStatus,
+    Frequency,
     ScanStatus,
     Severity,
     TargetStatus,
@@ -34,7 +37,16 @@ class TargetCreate(BaseModel):
     address: str
     label: str | None = None
     verification_method: VerificationMethod = VerificationMethod.dns_txt
-    schedule: str | None = None
+    frequency: Frequency = Frequency.weekly
+    alert_email: EmailStr | None = None
+    github_target: str | None = None
+
+
+class TargetUpdate(BaseModel):
+    label: str | None = None
+    frequency: Frequency | None = None
+    alert_email: EmailStr | None = None
+    github_target: str | None = None
 
 
 class TargetOut(BaseModel):
@@ -46,7 +58,9 @@ class TargetOut(BaseModel):
     verification_method: VerificationMethod
     verification_token: str
     verified_at: datetime | None
-    schedule: str | None
+    frequency: Frequency
+    alert_email: str | None
+    github_target: str | None
     created_at: datetime
 
 
@@ -63,11 +77,13 @@ class FindingOut(BaseModel):
     title: str
     description: str | None
     severity: Severity
+    category: FindingCategory
     status: FindingStatus
     host: str | None
     port: int | None
     service: str | None
     source: str
+    location: str | None
     cve_id: str | None
     cvss_score: float | None
     priority_score: float | None
@@ -101,3 +117,16 @@ class DashboardStats(BaseModel):
     total_scans: int
     open_findings: int
     findings_by_severity: dict[str, int]
+    findings_by_category: dict[str, int]
+
+
+class Report(BaseModel):
+    asset: str
+    label: str | None
+    generated_at: str
+    scan_id: str
+    overall_risk: str
+    headline: str
+    totals: dict[str, Any]
+    next_steps: list[str]
+    sections: list[dict[str, Any]]

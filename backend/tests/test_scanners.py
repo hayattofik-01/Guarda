@@ -1,57 +1,77 @@
-from app.worker.scanners import nmap_scan, nuclei_scan
-
-NMAP_XML = """<?xml version="1.0"?>
-<nmaprun>
-  <host>
-    <address addr="203.0.113.10" addrtype="ipv4"/>
-    <ports>
-      <port protocol="tcp" portid="22">
-        <state state="open"/>
-        <service name="ssh" product="OpenSSH" version="8.9"/>
-      </port>
-      <port protocol="tcp" portid="23">
-        <state state="open"/>
-        <service name="telnet"/>
-      </port>
-      <port protocol="tcp" portid="80">
-        <state state="closed"/>
-        <service name="http"/>
-      </port>
-    </ports>
-  </host>
-</nmaprun>
-"""
+from app.worker.scanners import (
+    gitleaks_scan,
+    httpx_scan,
+    nuclei_scan,
+    subfinder_scan,
+)
 
 NUCLEI_JSONL = (
-    '{"template-id":"CVE-2021-44228","host":"https://example.com",'
-    '"matched-at":"https://example.com/","type":"http",'
-    '"info":{"name":"Log4j RCE","severity":"critical",'
-    '"classification":{"cve-id":["CVE-2021-44228"],"cvss-score":10.0},'
-    '"reference":["https://nvd.nist.gov/vuln/detail/CVE-2021-44228"]}}'
+    '{"template-id":"git-config","host":"https://example.com",'
+    '"matched-at":"https://example.com/.git/config","type":"http",'
+    '"info":{"name":"Exposed .git config","severity":"medium","tags":["exposure","config"]}}\n'
+    '{"template-id":"aws-token","host":"https://example.com",'
+    '"matched-at":"https://example.com/app.js","type":"http",'
+    '"info":{"name":"AWS token","severity":"high","tags":["token","secret"]}}'
 )
 
 
-def test_nmap_parse_open_ports_only():
-    findings = nmap_scan._parse(NMAP_XML)
-    ports = {f["port"] for f in findings}
-    assert ports == {22, 23}  # closed port 80 excluded
-
-
-def test_nmap_flags_risky_service():
-    findings = nmap_scan._parse(NMAP_XML)
-    telnet = next(f for f in findings if f["port"] == 23)
-    assert telnet["severity"] == "low"
-    assert "cleartext" in telnet["description"].lower()
-
-
-def test_nuclei_parse_cve():
+def test_nuclei_parse_and_classify():
     findings = nuclei_scan._parse(NUCLEI_JSONL)
-    assert len(findings) == 1
-    f = findings[0]
-    assert f["cve_id"] == "CVE-2021-44228"
-    assert f["severity"] == "critical"
-    assert f["cvss_score"] == 10.0
+    assert len(findings) == 2
+    by_title = {f["title"]: f for f in findings}
+    assert by_title["Exposed .git config"]["category"] == "exposed_data"
+    assert by_title["AWS token"]["category"] == "sensitive_info"
 
 
-def test_nuclei_parse_ignores_garbage_lines():
+def test_nuclei_classify_takeover():
+    assert nuclei_scan._classify(["takeover"], "aws-takeover") == "reputation_risk"
+
+
+def test_nuclei_parse_ignores_garbage():
     assert nuclei_scan._parse("not-json\n\n") == []
+
+
+def test_subfinder_to_findings_excludes_root():
+    findings = subfinder_scan.to_findings(["example.com", "api.example.com"], "example.com")
+    assert len(findings) == 1
+    assert findings[0]["host"] == "api.example.com"
+    assert findings[0]["category"] == "footprint"
+
+
+def test_httpx_flags_risky_titles():
+    results = [
+        {"url": "https://example.com", "title": "Home", "status_code": 200},
+        {"url": "https://example.com/db", "title": "phpMyAdmin", "status_code": 200},
+    ]
+    findings = httpx_scan.to_findings(results)
+    risky = next(f for f in findings if "phpMyAdmin" in (f["title"] + f["description"]))
+    assert risky["category"] == "exposed_data"
+    assert risky["severity"] == "medium"
+
+
+def test_httpx_live_urls():
+    assert httpx_scan.live_urls([{"url": "https://a.com"}, {"input": "https://b.com"}]) == [
+        "https://a.com",
+        "https://b.com",
+    ]
+
+
+def test_gitleaks_normalize_repo_url():
+    assert gitleaks_scan._normalize_repo_url("owner/repo") == "https://github.com/owner/repo.git"
+    assert gitleaks_scan._normalize_repo_url("https://github.com/o/r") == (
+        "https://github.com/o/r.git"
+    )
+    # bare org page is rejected
+    assert gitleaks_scan._normalize_repo_url("owner") is None
+
+
+def test_gitleaks_parse():
+    raw = (
+        '[{"RuleID":"aws-access-token","File":"config.py","StartLine":12,'
+        '"Commit":"abcdef123456"}]'
+    )
+    findings = gitleaks_scan._parse(raw, "https://github.com/o/r.git")
+    assert len(findings) == 1
+    assert findings[0]["category"] == "sensitive_info"
+    assert findings[0]["severity"] == "high"
+    assert findings[0]["location"] == "config.py:12"

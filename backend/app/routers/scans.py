@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Scan, ScanStatus, Target, TargetStatus, User
-from app.schemas import ScanDetail, ScanOut
+from app.models import Finding, Scan, ScanStatus, Target, TargetStatus, User
+from app.schemas import Report, ScanDetail, ScanOut
+from app.services.report import build_report
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
 
@@ -73,3 +74,15 @@ def get_scan(
     db: Session = Depends(get_db),
 ) -> Scan:
     return _owned_scan(scan_id, user, db)
+
+
+@router.get("/{scan_id}/report", response_model=Report)
+def get_report(
+    scan_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Report:
+    scan = _owned_scan(scan_id, user, db)
+    target = db.get(Target, scan.target_id)
+    findings = list(db.scalars(select(Finding).where(Finding.scan_id == scan.id)))
+    return Report(**build_report(target, scan, findings))

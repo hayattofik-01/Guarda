@@ -1,4 +1,4 @@
-"""Outbound alerts via Slack webhook and/or SendGrid email.
+"""Outbound alerts via Resend email (primary) and optional Slack webhook.
 
 All functions are best-effort and no-op silently when the relevant integration
 is not configured, so the scan pipeline never fails because of alerting.
@@ -6,9 +6,15 @@ is not configured, so the scan pipeline never fails because of alerting.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import httpx
 
 from app.config import settings
+from app.services.report import render_email_html
+
+if TYPE_CHECKING:
+    from app.models import Finding
 
 
 def send_slack(text: str) -> bool:
@@ -21,26 +27,40 @@ def send_slack(text: str) -> bool:
         return False
 
 
-def send_email(subject: str, body: str, to: str | None = None) -> bool:
-    if not settings.sendgrid_api_key or not to:
+def send_email(to: str, subject: str, html: str) -> bool:
+    """Send an email via Resend. No-op when RESEND_API_KEY/recipient is missing."""
+    if not settings.resend_api_key or not to:
         return False
     try:
         resp = httpx.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers={"Authorization": f"Bearer {settings.sendgrid_api_key}"},
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
             json={
-                "personalizations": [{"to": [{"email": to}]}],
-                "from": {"email": settings.sendgrid_from_email},
+                "from": settings.resend_from_email,
+                "to": [to],
                 "subject": subject,
-                "content": [{"type": "text/plain", "value": body}],
+                "html": html,
             },
-            timeout=10,
+            timeout=15,
         )
         return resp.status_code < 400
     except httpx.HTTPError:
         return False
 
 
-def send_scan_complete(address: str, finding_count: int) -> None:
-    text = f":mag: Perimeter scan complete for *{address}* — {finding_count} finding(s)."
-    send_slack(text)
+def send_sensitive_alert(
+    to: str,
+    asset: str,
+    flagged: list[Finding],
+    report: dict,
+    scan_id: str,
+) -> bool:
+    """Email the asset owner when sensitive/high-risk findings are discovered."""
+    report_url = f"{settings.public_app_url}/reports/{scan_id}"
+    subject = f"[Guarda] {len(flagged)} sensitive finding(s) on {asset}"
+    html = render_email_html(report, report_url)
+    sent = send_email(to, subject, html)
+    send_slack(
+        f":rotating_light: Guarda found {len(flagged)} sensitive finding(s) on *{asset}*."
+    )
+    return sent

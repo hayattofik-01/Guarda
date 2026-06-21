@@ -92,7 +92,7 @@ class CalaClient:
                     {
                         "protocolVersion": PROTOCOL_VERSION,
                         "capabilities": {},
-                        "clientInfo": {"name": "perimeter", "version": "0.1.0"},
+                        "clientInfo": {"name": "guarda", "version": "0.1.0"},
                     },
                 )
                 tools = self._rpc(client, "tools/list")
@@ -115,7 +115,7 @@ class CalaClient:
                 {
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {},
-                    "clientInfo": {"name": "perimeter", "version": "0.1.0"},
+                    "clientInfo": {"name": "guarda", "version": "0.1.0"},
                 },
             )
             return self._rpc(client, "tools/call", {"name": name, "arguments": arguments})
@@ -135,7 +135,7 @@ class CalaClient:
                 {
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {},
-                    "clientInfo": {"name": "perimeter", "version": "0.1.0"},
+                    "clientInfo": {"name": "guarda", "version": "0.1.0"},
                 },
             )
             tools = self._rpc(client, "tools/list").get("tools", [])

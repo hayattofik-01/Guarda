@@ -6,6 +6,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import (
     Finding,
+    FindingCategory,
     FindingStatus,
     Scan,
     Severity,
@@ -37,6 +38,7 @@ def stats(
             total_scans=0,
             open_findings=0,
             findings_by_severity={s.value: 0 for s in Severity},
+            findings_by_category={c.value: 0 for c in FindingCategory},
         )
 
     total_scans = db.scalar(
@@ -55,10 +57,21 @@ def stats(
         by_sev[sev.value] = count
         open_count += count
 
+    cat_rows = db.execute(
+        select(Finding.category, func.count())
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.target_id.in_(target_ids), Finding.status == FindingStatus.open)
+        .group_by(Finding.category)
+    ).all()
+    by_cat = {c.value: 0 for c in FindingCategory}
+    for cat, count in cat_rows:
+        by_cat[cat.value] = count
+
     return DashboardStats(
         targets=total_targets,
         verified_targets=verified or 0,
         total_scans=total_scans or 0,
         open_findings=open_count,
         findings_by_severity=by_sev,
+        findings_by_category=by_cat,
     )

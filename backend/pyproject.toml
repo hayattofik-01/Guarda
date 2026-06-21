@@ -1,7 +1,7 @@
 [project]
-name = "perimeter-backend"
+name = "guarda-backend"
 version = "0.1.0"
-description = "Perimeter external vulnerability scanner backend"
+description = "Guarda digital-footprint monitoring backend"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.115.6",
@@ -13,7 +13,8 @@ dependencies = [
     "pydantic-settings==2.7.0",
     "celery[redis]==5.4.0",
     "redis==5.2.1",
-    "passlib[bcrypt]==1.7.4",
+    "passlib==1.7.4",
+    "bcrypt==4.0.1",
     "python-jose[cryptography]==3.3.0",
     "python-multipart==0.0.20",
     "httpx==0.28.1",

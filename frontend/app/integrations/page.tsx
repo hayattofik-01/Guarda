@@ -5,14 +5,15 @@ import Shell from "@/components/Shell";
 import { api, IntegrationStatus } from "@/lib/api";
 
 const ROWS: { key: keyof IntegrationStatus; name: string; purpose: string; env: string }[] = [
+  { key: "supabase", name: "Supabase", purpose: "Database (Postgres)", env: "SUPABASE_DB_URL" },
+  { key: "resend", name: "Resend", purpose: "Sensitive-finding email alerts", env: "RESEND_API_KEY" },
+  { key: "slack", name: "Slack", purpose: "Chat alerts (optional)", env: "SLACK_WEBHOOK_URL" },
   { key: "cala", name: "Cala.ai", purpose: "Structured data / intel layer", env: "CALA_API_KEY" },
   { key: "shodan", name: "Shodan", purpose: "Exposed host/service discovery", env: "SHODAN_API_KEY" },
   { key: "censys", name: "Censys", purpose: "Host & certificate search", env: "CENSYS_API_ID/SECRET" },
   { key: "securitytrails", name: "SecurityTrails", purpose: "Subdomain & DNS data", env: "SECURITYTRAILS_API_KEY" },
   { key: "virustotal", name: "VirusTotal", purpose: "Passive DNS / subdomains", env: "VIRUSTOTAL_API_KEY" },
   { key: "nvd", name: "NVD (NIST)", purpose: "CVE intelligence", env: "NVD_API_KEY" },
-  { key: "sendgrid", name: "SendGrid", purpose: "Email alerts", env: "SENDGRID_API_KEY" },
-  { key: "slack", name: "Slack", purpose: "Chat alerts", env: "SLACK_WEBHOOK_URL" },
 ];
 
 export default function IntegrationsPage() {
@@ -32,7 +33,8 @@ export default function IntegrationsPage() {
     <Shell>
       <h1 className="page-title">Integrations</h1>
       <p className="page-sub">
-        All optional. The scanner runs on free tools (nmap + nuclei) with none configured.
+        Guarda scans with free OSINT tools (subfinder, httpx, nuclei, gitleaks, theHarvester).
+        Supabase and Resend power storage and alerts; the rest are optional enrichments.
       </p>
 
       <div className="panel">

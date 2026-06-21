@@ -1,5 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const TOKEN_KEY = "perimeter_token";
+const TOKEN_KEY = "guarda_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -73,6 +73,12 @@ export async function register(email: string, password: string) {
 // ---- Types ----
 export type TargetStatus = "pending" | "verified" | "failed";
 export type Severity = "info" | "low" | "medium" | "high" | "critical";
+export type Frequency = "daily" | "weekly" | "monthly";
+export type FindingCategory =
+  | "sensitive_info"
+  | "exposed_data"
+  | "reputation_risk"
+  | "footprint";
 
 export interface Target {
   id: string;
@@ -82,7 +88,9 @@ export interface Target {
   verification_method: "dns_txt" | "http_file";
   verification_token: string;
   verified_at: string | null;
-  schedule: string | null;
+  frequency: Frequency;
+  alert_email: string | null;
+  github_target: string | null;
   created_at: string;
 }
 
@@ -102,11 +110,13 @@ export interface Finding {
   title: string;
   description: string | null;
   severity: Severity;
+  category: FindingCategory;
   status: "open" | "fixed" | "accepted";
   host: string | null;
   port: number | null;
   service: string | null;
   source: string;
+  location: string | null;
   cve_id: string | null;
   cvss_score: number | null;
   priority_score: number | null;
@@ -125,6 +135,36 @@ export interface DashboardStats {
   total_scans: number;
   open_findings: number;
   findings_by_severity: Record<string, number>;
+  findings_by_category: Record<string, number>;
+}
+
+export interface ReportItem {
+  title: string;
+  severity: Severity;
+  severity_label: string;
+  where: string;
+  what_happened: string;
+  what_to_do: string;
+}
+
+export interface ReportSection {
+  category: FindingCategory;
+  title: string;
+  what_it_means: string;
+  count: number;
+  items: ReportItem[];
+}
+
+export interface Report {
+  asset: string;
+  label: string | null;
+  generated_at: string;
+  scan_id: string;
+  overall_risk: string;
+  headline: string;
+  totals: Record<string, number | Record<string, number>>;
+  next_steps: string[];
+  sections: ReportSection[];
 }
 
 export interface VerificationInstructions {
@@ -134,13 +174,14 @@ export interface VerificationInstructions {
 }
 
 export interface IntegrationStatus {
+  supabase: boolean;
+  resend: boolean;
   cala: boolean;
   shodan: boolean;
   censys: boolean;
   securitytrails: boolean;
   virustotal: boolean;
   nvd: boolean;
-  sendgrid: boolean;
   slack: boolean;
 }
 
@@ -155,8 +196,14 @@ export const api = {
     address: string;
     label?: string;
     verification_method?: string;
-    schedule?: string | null;
+    frequency?: Frequency;
+    alert_email?: string | null;
+    github_target?: string | null;
   }) => request<Target>("/api/targets", { method: "POST", body: JSON.stringify(payload) }),
+  updateTarget: (
+    id: string,
+    payload: { frequency?: Frequency; alert_email?: string | null; github_target?: string | null },
+  ) => request<Target>(`/api/targets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteTarget: (id: string) => request<void>(`/api/targets/${id}`, { method: "DELETE" }),
   verification: (id: string) =>
     request<VerificationInstructions>(`/api/targets/${id}/verification`),
@@ -167,6 +214,7 @@ export const api = {
     request<Scan>(`/api/scans/targets/${targetId}`, { method: "POST" }),
   listScans: (targetId: string) => request<Scan[]>(`/api/scans/targets/${targetId}`),
   getScan: (id: string) => request<ScanDetail>(`/api/scans/${id}`),
+  getReport: (id: string) => request<Report>(`/api/scans/${id}/report`),
 
   listFindings: (severity?: Severity) =>
     request<Finding[]>(`/api/findings${severity ? `?severity=${severity}` : ""}`),

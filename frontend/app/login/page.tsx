@@ -30,11 +30,12 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
-        <div className="brand" style={{ marginBottom: 20 }}>
-          <span className="dot" /> Perimeter
+        <div className="brand" style={{ marginBottom: 12 }}>
+          <span className="dot" /> Guarda
         </div>
         <p className="muted" style={{ marginTop: 0 }}>
-          External vulnerability scanning & attack surface management
+          We watch. We detect. We guide. — monitor your digital footprint and get
+          alerted when sensitive data is exposed.
         </p>
         <form onSubmit={onSubmit}>
           <div className="field">
