@@ -41,29 +41,49 @@ def test_company_intel_full_workflow(monkeypatch):
         enabled = True
 
         def entity_search(self, name, limit=None, **kw):
-            return [{"entity_id": "e1", "name": "Acme Inc"}]
+            return [{"id": "e1", "name": "Acme Inc", "entity_type": "Organization"}]
 
         def entity_introspection(self, entity_id):
-            return {"properties": ["legal_name", "industry"], "relationships": ["IS_CEO_OF"]}
+            return {
+                "properties": ["legal_name", "employee_count", "registered_address"],
+                "relationships": {
+                    "incoming": ["IS_CEO_OF"],
+                    "outgoing": ["OPERATES_IN_INDUSTRY"],
+                },
+            }
 
         def retrieve_entity(self, entity_id, properties=None, relationships=None):
             return {
-                "legal_name": "Acme Incorporated",
-                "industry": "SaaS",
-                "IS_CEO_OF": [{"name": "Jane Doe"}],
+                "name": "Acme, Inc.",
+                "properties": {
+                    "legal_name": {"value": "Acme Incorporated"},
+                    "employee_count": {"value": 200},
+                    "registered_address": {"value": "1 Acme Way, Dublin"},
+                },
+                "relationships": {
+                    "incoming": {"IS_CEO_OF": [{"name": "Jane Doe"}]},
+                    "outgoing": {"OPERATES_IN_INDUSTRY": [{"name": "SOFTWARE_AND_SERVICES"}]},
+                },
             }
 
         def knowledge_search(self, input, explainability=False, return_entities=False):
-            return {"text": "Acme suffered a breach in 2021.", "citations": [{"url": "https://n/1"}]}
+            return {
+                "content": "## Incidents\n\nAcme suffered a breach in 2021 exposing user data.",
+                "context": [{"origins": [{"source": {"url": "https://n/1"}}]}],
+            }
 
     monkeypatch.setattr(cala_intel, "CalaClient", lambda: Fake())
     out = cala_intel.company_intel("acme.io")
     assert out["available"] is True
     org = out["organisation"]
+    assert org["name"] == "Acme, Inc."
     assert org["legal_name"] == "Acme Incorporated"
-    assert org["industry"] == "SaaS"
+    assert org["employees"] == "200"
+    assert org["headquarters"] == "1 Acme Way, Dublin"
+    assert org["industry"] == "Software And Services"
     assert org["leadership"] == [{"name": "Jane Doe", "role": "CEO"}]
     assert out["incidents"][0]["sources"] == ["https://n/1"]
+    assert "breach in 2021" in out["incidents"][0]["summary"]
 
 
 def test_company_intel_handles_no_entity(monkeypatch):
