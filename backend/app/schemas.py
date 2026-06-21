@@ -61,6 +61,8 @@ class TargetOut(BaseModel):
     verification_token: str
     verified_at: datetime | None
     frequency: Frequency
+    next_scan_at: datetime | None = None
+    last_scan_at: datetime | None = None
     alert_email: str | None
     alert_whatsapp: str | None
     github_target: str | None
@@ -112,6 +114,30 @@ class ScanOut(BaseModel):
 
 class ScanDetail(ScanOut):
     findings: list[FindingOut] = []
+    advice: str | None = None
+    advice_source: str | None = None
+    advice_status: str | None = None
+
+
+class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    filename: str
+    doc_type: str
+    status: ScanStatus
+    compliance_status: str | None
+    compliance_score: int | None
+    summary: str | None
+    advice: str | None
+    error: str | None
+    frequency: Frequency
+    next_check_at: datetime | None
+    last_checked_at: datetime | None
+    created_at: datetime
+
+
+class DocumentDetail(DocumentOut):
+    checks: list[dict[str, Any]] = []
 
 
 class DashboardStats(BaseModel):
@@ -137,6 +163,9 @@ class Report(BaseModel):
     score_summary: str
     compliance: list[dict[str, Any]]
     gdpr: dict[str, Any]
+    advice: str | None = None
+    advice_source: str | None = None
+    advice_status: str | None = None
     headline: str
     totals: dict[str, Any]
     next_steps: list[str]

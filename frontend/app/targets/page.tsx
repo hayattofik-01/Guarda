@@ -157,6 +157,7 @@ export default function TargetsPage() {
               <th>Label</th>
               <th>Status</th>
               <th>Frequency</th>
+              <th>Next scan</th>
               <th>Alert email</th>
               <th>WhatsApp</th>
               <th></th>
@@ -175,6 +176,13 @@ export default function TargetsPage() {
                   <StatusBadge status={t.status} />
                 </td>
                 <td style={{ textTransform: "capitalize" }}>{t.frequency}</td>
+                <td>
+                  {t.next_scan_at ? (
+                    new Date(t.next_scan_at).toLocaleString()
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
                 <td>{t.alert_email || <span className="muted">—</span>}</td>
                 <td>{t.alert_whatsapp || <span className="muted">—</span>}</td>
                 <td style={{ textAlign: "right" }}>
@@ -186,7 +194,7 @@ export default function TargetsPage() {
             ))}
             {targets.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted">
+                <td colSpan={8} className="muted">
                   No assets yet. Add one above.
                 </td>
               </tr>

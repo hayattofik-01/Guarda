@@ -8,6 +8,7 @@ import { api, clearToken, getToken } from "@/lib/api";
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/targets", label: "Monitored Assets" },
+  { href: "/documents", label: "Documents" },
   { href: "/findings", label: "Findings" },
 ];
 

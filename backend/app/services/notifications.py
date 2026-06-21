@@ -65,6 +65,41 @@ def send_whatsapp(to: str, body: str) -> bool:
         return False
 
 
+def send_document_alert(email: str, filename: str, result: dict) -> bool:
+    """Email the owner when an uploaded document fails its GDPR compliance check."""
+    if not email:
+        return False
+    failed = [c for c in result.get("checks", []) if not c["passed"]]
+    rows = "".join(
+        '<div style="border:1px solid #eee;border-radius:8px;padding:10px;margin:6px 0;">'
+        f'<strong>{c["requirement"]}</strong>'
+        f'<br><span style="color:#999;font-size:12px;">{c["article"]}</span></div>'
+        for c in failed
+    ) or "<p>All key clauses present.</p>"
+    score = result.get("score", "")
+    docs_url = f"{settings.public_app_url}/documents"
+    html = f"""\
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;">
+  <div style="background:#0a0613;padding:20px;border-radius:10px 10px 0 0;">
+    <span style="color:#fff;font-size:22px;font-weight:bold;">GUARDA</span>
+    <div style="color:#a78bfa;font-size:13px;">Compliance monitoring</div>
+  </div>
+  <div style="padding:20px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px;">
+    <h2 style="margin:0 0 6px;">GDPR gaps in “{filename}”</h2>
+    <p style="color:#333;">Compliance coverage: <strong>{score}/100</strong>.
+    {result.get('summary', '')}</p>
+    <h3 style="margin:16px 0 6px;color:#7c5cff;">Clauses to add</h3>
+    {rows}
+    <a href="{docs_url}" style="display:inline-block;margin-top:16px;background:#7c5cff;
+      color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;">Review documents</a>
+  </div>
+</div>"""
+    subject = f"[Guarda] GDPR gaps found in {filename}"
+    sent = send_email(email, subject, html)
+    send_slack(f":page_facing_up: Guarda found GDPR gaps in *{filename}* ({score}/100).")
+    return sent
+
+
 def send_sensitive_alert(
     asset: str,
     flagged: list[Finding],

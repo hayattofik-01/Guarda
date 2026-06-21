@@ -19,7 +19,10 @@ from app.models import (
     Severity,
     Target,
 )
+from app.services.advice_agent import start_advice
 from app.services.enrichment import compute_priority, is_known_exploited
+from app.services.gdpr import gdpr_assessment
+from app.services.scheduling import next_run
 from app.worker.scanners import (
     gitleaks_scan,
     httpx_scan,
@@ -160,6 +163,19 @@ def execute_scan(scan_id: str) -> str:
         scan.status = ScanStatus.completed if ran_any else ScanStatus.failed
         if errors:
             scan.error = "; ".join(errors)
+
+        # Schedule the next automated run for this asset.
+        now = datetime.now(UTC)
+        target.last_scan_at = now
+        target.next_scan_at = next_run(target.frequency, after=now)
+
+        # Generate remediation advice (deterministic now; Devin upgrade if configured).
+        try:
+            gdpr = gdpr_assessment(target.address, stored, scan_id=scan.id)
+            start_advice(scan, target.address, stored, gdpr.get("summary"))
+        except Exception:  # noqa: BLE001 - advice is best-effort
+            pass
+
         db.commit()
 
         _alert_if_sensitive(db, target, scan, stored)

@@ -52,6 +52,8 @@ def onboarding_scan(
         select(Target).where(Target.owner_id == user.id, Target.address == domain)
     )
     if target is None:
+        from app.services.scheduling import next_run
+
         target = Target(
             owner_id=user.id,
             address=domain,
@@ -59,6 +61,7 @@ def onboarding_scan(
             verified_at=datetime.now(UTC),
             frequency=Frequency.weekly,
             alert_email=user.email,
+            next_scan_at=next_run(Frequency.weekly),
         )
         db.add(target)
     else:

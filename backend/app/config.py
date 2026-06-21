@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     nuclei_rate_limit: int = 150
     nuclei_request_timeout: int = 5
 
+    # Devin API (powers the AI remediation "advice" agent; optional)
+    devin_api_key: str = ""
+    devin_api_base: str = "https://api.devin.ai/v1"
+
+    # Shared secret protecting the scheduler endpoint (/api/cron/tick).
+    cron_secret: str = ""
+
     # Integrations (all optional)
     cala_api_key: str = ""
     cala_mcp_url: str = "https://api.cala.ai/mcp/"

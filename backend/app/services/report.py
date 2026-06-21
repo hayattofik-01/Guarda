@@ -132,6 +132,9 @@ def build_report(target: Target, scan: Scan, findings: list[Finding]) -> dict:
         "score_summary": score["summary"],
         "compliance": compliance_checklist(findings),
         "gdpr": gdpr_assessment(target.address, findings, scan_id=scan.id),
+        "advice": getattr(scan, "advice", None),
+        "advice_source": getattr(scan, "advice_source", None),
+        "advice_status": getattr(scan, "advice_status", None),
         "headline": _headline(target.address, risk, sensitive_count, exposed_count),
         "totals": {
             "findings": len(findings),

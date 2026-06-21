@@ -65,6 +65,10 @@ def update_target(
     data = payload.model_dump(exclude_unset=True)
     for field, value in data.items():
         setattr(target, field, value)
+    if "frequency" in data:
+        from app.services.scheduling import next_run
+
+        target.next_scan_at = next_run(target.frequency, after=target.last_scan_at)
     db.commit()
     db.refresh(target)
     return target

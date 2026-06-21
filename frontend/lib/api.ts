@@ -89,6 +89,8 @@ export interface Target {
   verification_token: string;
   verified_at: string | null;
   frequency: Frequency;
+  next_scan_at: string | null;
+  last_scan_at: string | null;
   alert_email: string | null;
   alert_whatsapp: string | null;
   github_target: string | null;
@@ -212,10 +214,40 @@ export interface Report {
   score_summary: string;
   compliance: ComplianceCheck[];
   gdpr: GdprAssessment;
+  advice: string | null;
+  advice_source: string | null;
+  advice_status: string | null;
   headline: string;
   totals: Record<string, number | Record<string, number>>;
   next_steps: string[];
   sections: ReportSection[];
+}
+
+export interface DocumentCheck {
+  article: string;
+  requirement: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface GuardaDocument {
+  id: string;
+  filename: string;
+  doc_type: string;
+  status: "queued" | "running" | "completed" | "failed";
+  compliance_status: "compliant" | "gaps" | "non_compliant" | null;
+  compliance_score: number | null;
+  summary: string | null;
+  advice: string | null;
+  error: string | null;
+  frequency: Frequency;
+  next_check_at: string | null;
+  last_checked_at: string | null;
+  created_at: string;
+}
+
+export interface GuardaDocumentDetail extends GuardaDocument {
+  checks: DocumentCheck[];
 }
 
 export interface VerificationInstructions {
@@ -287,4 +319,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ domain }),
     }),
+
+  listDocuments: () => request<GuardaDocument[]>("/api/documents"),
+  getDocument: (id: string) => request<GuardaDocumentDetail>(`/api/documents/${id}`),
+  uploadDocument: (file: File, docType = "document") => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("doc_type", docType);
+    return request<GuardaDocument>("/api/documents", { method: "POST", body: form });
+  },
+  recheckDocument: (id: string) =>
+    request<GuardaDocument>(`/api/documents/${id}/recheck`, { method: "POST" }),
+  deleteDocument: (id: string) =>
+    request<void>(`/api/documents/${id}`, { method: "DELETE" }),
 };

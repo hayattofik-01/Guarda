@@ -185,6 +185,28 @@ export default function ReportPage() {
         </div>
       )}
 
+      {report.advice && (
+        <div className="panel compliance">
+          <div className="flex-between" style={{ alignItems: "flex-start" }}>
+            <h3 style={{ marginTop: 0 }}>AI remediation advice</h3>
+            <span className={`gdpr-source ${report.advice_source === "devin" ? "cala" : ""}`}>
+              {report.advice_source === "devin"
+                ? "Written by Devin AI"
+                : "Automated guidance"}
+            </span>
+          </div>
+          <div style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>
+            {report.advice}
+          </div>
+          {report.advice_status === "pending" && (
+            <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>
+              A Devin agent is drafting tailored guidance — refresh shortly for the
+              upgraded version.
+            </p>
+          )}
+        </div>
+      )}
+
       {report.next_steps.length > 0 && (
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>What to do next</h3>

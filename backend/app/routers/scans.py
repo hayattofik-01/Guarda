@@ -83,4 +83,9 @@ def get_report(
     scan = _owned_scan(scan_id, user, db)
     target = db.get(Target, scan.target_id)
     findings = list(db.scalars(select(Finding).where(Finding.scan_id == scan.id)))
+    # Lazily upgrade to Devin-authored advice once its session has finished.
+    from app.services.advice_agent import refresh_advice
+
+    if refresh_advice(scan):
+        db.commit()
     return Report(**build_report(target, scan, findings))
