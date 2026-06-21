@@ -133,11 +133,20 @@ export default function DocumentsPage() {
                     {d.filename}
                   </button>
                 </td>
-                <td style={{ textTransform: "capitalize" }}>{d.status}</td>
+                <td style={{ textTransform: "capitalize" }}>
+                  {d.status === "failed" ? "Check failed" : d.status}
+                  {(d.status === "queued" || d.status === "running") && (
+                    <span className="muted"> · checking…</span>
+                  )}
+                </td>
                 <td>
                   {d.compliance_status ? (
                     <span className={`badge ${complianceClass(d.compliance_status)}`}>
                       {STATUS_LABEL[d.compliance_status] || d.compliance_status}
+                    </span>
+                  ) : d.status === "failed" ? (
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      Couldn&apos;t finish — click Re-check
                     </span>
                   ) : (
                     <span className="muted">—</span>

@@ -20,12 +20,14 @@ from app.routers import (
 Base.metadata.create_all(bind=engine)
 ensure_schema()
 
-# After a restart (e.g. an OOM-killed scan task on a small free-tier box),
-# reclaim any scans left stuck "running" so the UI never spins forever.
+# After a restart (e.g. an OOM-killed task on a small free-tier box), reclaim
+# any scans/documents left stuck "running" so the UI never spins forever.
 try:
+    from app.services.document_runner import reclaim_stuck_documents
     from app.services.scan_runner import reclaim_stuck_scans
 
     reclaim_stuck_scans()
+    reclaim_stuck_documents()
 except Exception:  # noqa: BLE001 - best-effort startup cleanup
     pass
 

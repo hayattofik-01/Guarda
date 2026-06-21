@@ -72,6 +72,11 @@ def list_documents(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Document]:
+    # Self-heal any check lost to a restart/sleep so the list never shows a row
+    # stuck on "Queued" forever (the user can re-check a reclaimed document).
+    from app.services.document_runner import reclaim_stuck_documents
+
+    reclaim_stuck_documents(db)
     return list(
         db.scalars(
             select(Document)

@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # task was OOM-killed on a small free-tier box) is reclaimed and marked
     # failed so the UI never spins forever.
     scan_stuck_after_seconds: int = 60 * 6
+    # Document checks are fast; one still queued/running this long was lost to a
+    # restart/sleep and is reclaimed so the UI never shows "Queued" forever.
+    document_stuck_after_seconds: int = 120
     # subfinder streams subdomain strings (trivial memory) so it's safe to query
     # all passive sources for rich, consistent discovery; the memory guard is the
     # httpx host cap below, not the breadth of subdomain enumeration.
