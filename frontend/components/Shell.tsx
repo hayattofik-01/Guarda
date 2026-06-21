@@ -9,7 +9,6 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/targets", label: "Monitored Assets" },
   { href: "/findings", label: "Findings" },
-  { href: "/integrations", label: "Integrations" },
 ];
 
 export default function Shell({ children }: { children: ReactNode }) {
