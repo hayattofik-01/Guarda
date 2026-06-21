@@ -37,14 +37,19 @@ def run(hosts: list[str]) -> tuple[list[dict], str]:
         "-timeout", "10",
         "-disable-update-check",
     ]
-    proc = subprocess.run(
-        cmd,
-        input="\n".join(hosts),
-        capture_output=True,
-        text=True,
-        timeout=settings.scan_timeout_seconds,
-    )
-    raw = proc.stdout
+    try:
+        proc = subprocess.run(
+            cmd,
+            input="\n".join(hosts),
+            capture_output=True,
+            text=True,
+            timeout=settings.httpx_deadline_seconds,
+        )
+        raw = proc.stdout
+    except subprocess.TimeoutExpired as exc:
+        raw = exc.stdout or ""
+        if isinstance(raw, bytes):
+            raw = raw.decode(errors="ignore")
     results = []
     for line in raw.splitlines():
         line = line.strip()

@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     nuclei_concurrency: int = 25
     nuclei_rate_limit: int = 150
     nuclei_request_timeout: int = 5
+    # theHarvester and httpx can stall on slow public sources / large host lists;
+    # bound each so an in-process scan finishes quickly (partial output is kept).
+    harvester_deadline_seconds: int = 120
+    httpx_deadline_seconds: int = 120
 
     # Devin API (powers the AI remediation "advice" agent; optional)
     devin_api_key: str = ""

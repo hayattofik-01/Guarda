@@ -30,12 +30,16 @@ def run(domain: str) -> tuple[list[dict], str]:
 
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "harvest")
-        subprocess.run(
-            ["theHarvester", "-d", domain, "-b", _SOURCES, "-f", out],
-            capture_output=True,
-            text=True,
-            timeout=settings.scan_timeout_seconds,
-        )
+        # Bound runtime; on timeout keep whatever was written to the output file.
+        try:
+            subprocess.run(
+                ["theHarvester", "-d", domain, "-b", _SOURCES, "-f", out],
+                capture_output=True,
+                text=True,
+                timeout=settings.harvester_deadline_seconds,
+            )
+        except subprocess.TimeoutExpired:
+            pass
         raw = ""
         path = out if os.path.exists(out) else f"{out}.json"
         if os.path.exists(path):
