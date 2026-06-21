@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     HTTPX_VERSION=1.6.9 \
     GITLEAKS_VERSION=8.21.2 \
     THEHARVESTER_VERSION=4.6.0 \
+    NUCLEI_TEMPLATES_VERSION=10.4.4 \
     PATH="/root/.local/bin:${PATH}"
 
 # System deps: git (gitleaks clones), plus fetch helpers.
@@ -51,10 +52,17 @@ RUN pip install --no-cache-dir pipx \
     && theHarvester --help >/dev/null 2>&1 \
     || echo "theHarvester install skipped"
 
-COPY . .
+# Bake nuclei templates from the pinned GitHub archive. nuclei's built-in
+# updater is unreliable in sandboxed builds, so fetch the tarball directly
+# (same channel as the binaries) into the templates dir nuclei reads.
+RUN curl -sSL -o /tmp/nuclei-templates.tar.gz \
+      "https://codeload.github.com/projectdiscovery/nuclei-templates/tar.gz/refs/tags/v${NUCLEI_TEMPLATES_VERSION}" \
+    && mkdir -p /root/nuclei-templates \
+    && tar -xzf /tmp/nuclei-templates.tar.gz -C /root/nuclei-templates --strip-components=1 \
+    && rm -f /tmp/nuclei-templates.tar.gz \
+    && echo "nuclei templates: $(find /root/nuclei-templates -name '*.yaml' | wc -l) files"
 
-# Pre-fetch nuclei templates (best effort; ignored if offline at build time).
-RUN nuclei -update-templates -disable-update-check 2>/dev/null || true
+COPY . .
 
 EXPOSE 8000
 
