@@ -1,258 +1,262 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { useEffect, useRef, useState, useCallback, ReactNode } from "react";
 
-const RING_COUNT = 4;
-const PACKETS_PER_RING = 12;
-const DEBRIS_COUNT = 60;
+/* ── SVG icon definitions (line-art, single-path where possible) ── */
 
-export default function ParticleField() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef(0);
+function LaptopIcon() {
+  return (
+    <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M20 20h80v50H20zM20 70l-10 12h100l-10-12M50 30h20M45 40h30M40 50h40"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function HackerIcon() {
+  return (
+    <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M50 10C30 10 20 30 20 45v5c0 10 5 18 12 23l-7 30h50l-7-30c7-5 12-13 12-23v-5c0-15-10-35-30-35zM35 50a4 4 0 108 0 4 4 0 00-8 0M57 50a4 4 0 108 0 4 4 0 00-8 0M40 65c5 5 15 5 20 0M15 35c-5-15 5-30 20-32M85 35c5-15-5-30-20-32"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function FounderIcon() {
+  return (
+    <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M50 15a15 15 0 110 30 15 15 0 010-30M30 55c0-5 9-10 20-10s20 5 20 10v8H30zM30 63h40v20c0 8-9 15-20 15s-20-7-20-15zM42 75h16M50 75v10M35 55l-10 15M65 55l10 15"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M50 8L15 28v30c0 25 15 42 35 52 20-10 35-27 35-52V28zM38 58l10 10 18-22M50 8v102M15 28h70"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M20 42V30a20 20 0 0140 0v12M12 42h56v45H12zM40 60v15M40 60a5 5 0 100-10 5 5 0 000 10"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function BugIcon() {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M35 25a15 10 0 0130 0M50 35v45M30 50h40M25 35l-12-8M75 35l12-8M22 55l-14 5M78 55l14 5M25 75l-10 12M75 75l10 12M30 35c0 0-5 5-5 20s5 30 25 30 25-15 25-30-5-20-5-20z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M10 40S30 10 60 10s50 30 50 30-20 30-50 30S10 40 10 40zM60 25a15 15 0 110 30 15 15 0 010-30M60 33a7 7 0 110 14 7 7 0 010-14M5 40h10M105 40h10M60 5v8M60 67v8M25 15l5 6M90 15l-5 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ServerIcon() {
+  return (
+    <svg viewBox="0 0 80 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M10 10h60v28H10zM10 42h60v28H10zM10 74h60v28H10zM20 24h4M30 24h4M20 56h4M30 56h4M20 88h4M30 88h4M55 24a2 2 0 104 0 2 2 0 00-4 0M55 56a2 2 0 104 0 2 2 0 00-4 0M55 88a2 2 0 104 0 2 2 0 00-4 0M40 38v4M40 70v4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CodeIcon() {
+  return (
+    <svg viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        className="svg-reveal-path"
+        d="M35 15L10 40l25 25M85 15l25 25-25 25M50 10l20 60M5 40h5M110 40h5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/* ── Layout: where each icon sits, its size, color ── */
+
+interface IconPlacement {
+  Icon: () => ReactNode;
+  x: string; // CSS left
+  y: string; // CSS top
+  size: number; // px
+  color: string;
+  delay: number; // scroll-reveal stagger ms
+}
+
+const ICONS: IconPlacement[] = [
+  { Icon: LaptopIcon, x: "8%", y: "5%", size: 110, color: "#7c5cff", delay: 0 },
+  { Icon: HackerIcon, x: "82%", y: "8%", size: 90, color: "#06b6d4", delay: 100 },
+  { Icon: ShieldIcon, x: "88%", y: "35%", size: 100, color: "#a78bfa", delay: 200 },
+  { Icon: FounderIcon, x: "5%", y: "38%", size: 95, color: "#22d3ee", delay: 150 },
+  { Icon: EyeIcon, x: "75%", y: "58%", size: 105, color: "#7c5cff", delay: 250 },
+  { Icon: LockIcon, x: "10%", y: "62%", size: 80, color: "#06b6d4", delay: 300 },
+  { Icon: BugIcon, x: "85%", y: "80%", size: 85, color: "#a78bfa", delay: 200 },
+  { Icon: ServerIcon, x: "3%", y: "82%", size: 80, color: "#22d3ee", delay: 350 },
+  { Icon: CodeIcon, x: "45%", y: "90%", size: 100, color: "#7c5cff", delay: 100 },
+];
+
+/* ── Single icon wrapper with IntersectionObserver reveal ── */
+
+function RevealIcon({ Icon, x, y, size, color, delay }: IconPlacement) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [hover, setHover] = useState(false);
 
   useEffect(() => {
-    const el = containerRef.current;
+    const el = ref.current;
     if (!el) return;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, el.clientWidth / el.clientHeight, 1, 2000);
-    camera.position.z = 500;
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(el.clientWidth, el.clientHeight);
-    renderer.setClearColor(0x000000, 0);
-    el.appendChild(renderer.domElement);
-
-    // Central rotating icosahedron "shield core"
-    const coreGeo = new THREE.IcosahedronGeometry(38, 1);
-    const coreMat = new THREE.MeshBasicMaterial({
-      color: 0x7c5cff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.35,
-    });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    scene.add(core);
-
-    // Inner glow sphere
-    const glowGeo = new THREE.SphereGeometry(28, 32, 32);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0xa78bfa,
-      transparent: true,
-      opacity: 0.08,
-      blending: THREE.AdditiveBlending,
-    });
-    const glow = new THREE.Mesh(glowGeo, glowMat);
-    scene.add(glow);
-
-    // Orbital rings — tilted at different angles, each carrying "data packets"
-    const rings: {
-      group: THREE.Group;
-      radius: number;
-      speed: number;
-      packets: THREE.Mesh[];
-    }[] = [];
-
-    const ringRadii = [90, 140, 200, 280];
-    const ringTilts = [
-      { x: 0.3, z: 0.1 },
-      { x: -0.5, z: 0.8 },
-      { x: 0.9, z: -0.3 },
-      { x: -0.2, z: 1.2 },
-    ];
-    const ringSpeeds = [0.4, -0.28, 0.18, -0.12];
-    const packetColors = [0x7c5cff, 0x06b6d4, 0xa78bfa, 0x22d3ee];
-
-    for (let r = 0; r < RING_COUNT; r++) {
-      const group = new THREE.Group();
-      group.rotation.x = ringTilts[r].x;
-      group.rotation.z = ringTilts[r].z;
-      scene.add(group);
-
-      // Visible ring path
-      const curve = new THREE.EllipseCurve(0, 0, ringRadii[r], ringRadii[r], 0, Math.PI * 2, false, 0);
-      const points = curve.getPoints(80);
-      const ringLineGeo = new THREE.BufferGeometry().setFromPoints(
-        points.map((p) => new THREE.Vector3(p.x, p.y, 0)),
-      );
-      const ringLineMat = new THREE.LineBasicMaterial({
-        color: packetColors[r],
-        transparent: true,
-        opacity: 0.08,
-        blending: THREE.AdditiveBlending,
-      });
-      group.add(new THREE.Line(ringLineGeo, ringLineMat));
-
-      // Data packets on each ring
-      const packets: THREE.Mesh[] = [];
-      const geos = [
-        new THREE.BoxGeometry(5, 5, 5),
-        new THREE.OctahedronGeometry(4),
-        new THREE.TetrahedronGeometry(5),
-      ];
-      for (let p = 0; p < PACKETS_PER_RING; p++) {
-        const geo = geos[p % geos.length];
-        const mat = new THREE.MeshBasicMaterial({
-          color: packetColors[r],
-          transparent: true,
-          opacity: 0.6,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-        });
-        const mesh = new THREE.Mesh(geo, mat);
-        group.add(mesh);
-        packets.push(mesh);
-      }
-
-      rings.push({ group, radius: ringRadii[r], speed: ringSpeeds[r], packets });
-    }
-
-    // Floating debris — small geometric shards drifting in space
-    const debris: { mesh: THREE.Mesh; vel: THREE.Vector3; rotSpeed: THREE.Vector3 }[] = [];
-    const debrisGeos = [
-      new THREE.TetrahedronGeometry(2),
-      new THREE.OctahedronGeometry(1.5),
-      new THREE.BoxGeometry(2, 2, 2),
-    ];
-    for (let i = 0; i < DEBRIS_COUNT; i++) {
-      const geo = debrisGeos[i % debrisGeos.length];
-      const mat = new THREE.MeshBasicMaterial({
-        color: i % 3 === 0 ? 0x06b6d4 : 0x7c5cff,
-        transparent: true,
-        opacity: 0.3 + Math.random() * 0.3,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(
-        (Math.random() - 0.5) * 1200,
-        (Math.random() - 0.5) * 800,
-        (Math.random() - 0.5) * 400,
-      );
-      scene.add(mesh);
-      debris.push({
-        mesh,
-        vel: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.2,
-          (Math.random() - 0.5) * 0.2,
-          (Math.random() - 0.5) * 0.1,
-        ),
-        rotSpeed: new THREE.Vector3(
-          Math.random() * 0.02,
-          Math.random() * 0.02,
-          Math.random() * 0.01,
-        ),
-      });
-    }
-
-    // Pulse waves — expanding rings from center
-    const pulses: THREE.Mesh[] = [];
-    const pulseGeo = new THREE.RingGeometry(1, 3, 64);
-    let lastPulse = 0;
-
-    // Mouse interaction
-    const mouse = new THREE.Vector2(0, 0);
-    function onMouseMove(e: MouseEvent) {
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    }
-    window.addEventListener("mousemove", onMouseMove);
-
-    function animate() {
-      frameRef.current = requestAnimationFrame(animate);
-      const t = Date.now() * 0.001;
-
-      // Rotate core
-      core.rotation.x = t * 0.15;
-      core.rotation.y = t * 0.2;
-      const corePulse = 0.3 + Math.sin(t * 1.5) * 0.08;
-      (core.material as THREE.MeshBasicMaterial).opacity = corePulse;
-      const glowScale = 1 + Math.sin(t * 2) * 0.15;
-      glow.scale.setScalar(glowScale);
-
-      // Animate orbital packets
-      rings.forEach((ring) => {
-        ring.packets.forEach((pkt, i) => {
-          const angle = t * ring.speed + (i / PACKETS_PER_RING) * Math.PI * 2;
-          pkt.position.x = Math.cos(angle) * ring.radius;
-          pkt.position.y = Math.sin(angle) * ring.radius;
-          pkt.position.z = Math.sin(angle * 2) * 15;
-          pkt.rotation.x = t * 1.5 + i;
-          pkt.rotation.y = t * 1.2 + i * 0.5;
-          const mat = pkt.material as THREE.MeshBasicMaterial;
-          mat.opacity = 0.35 + Math.sin(t * 3 + i * 0.7) * 0.25;
-          const s = 0.7 + Math.sin(t * 2 + i) * 0.3;
-          pkt.scale.setScalar(s);
-        });
-      });
-
-      // Animate debris
-      debris.forEach((d) => {
-        d.mesh.position.add(d.vel);
-        d.mesh.rotation.x += d.rotSpeed.x;
-        d.mesh.rotation.y += d.rotSpeed.y;
-        if (Math.abs(d.mesh.position.x) > 600) d.vel.x *= -1;
-        if (Math.abs(d.mesh.position.y) > 400) d.vel.y *= -1;
-        if (Math.abs(d.mesh.position.z) > 200) d.vel.z *= -1;
-      });
-
-      // Spawn pulse waves periodically
-      if (t - lastPulse > 3) {
-        lastPulse = t;
-        const pulseMat = new THREE.MeshBasicMaterial({
-          color: 0x7c5cff,
-          transparent: true,
-          opacity: 0.3,
-          side: THREE.DoubleSide,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-        });
-        const pulse = new THREE.Mesh(pulseGeo, pulseMat);
-        pulse.userData.born = t;
-        scene.add(pulse);
-        pulses.push(pulse);
-      }
-
-      // Animate pulses
-      for (let i = pulses.length - 1; i >= 0; i--) {
-        const p = pulses[i];
-        const age = t - p.userData.born;
-        const scale = 1 + age * 80;
-        p.scale.setScalar(scale);
-        (p.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.3 - age * 0.1);
-        if (age > 3) {
-          scene.remove(p);
-          pulses.splice(i, 1);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRevealed(true);
+          observer.disconnect();
         }
-      }
-
-      // Camera follows mouse with gentle sway
-      camera.position.x += (mouse.x * 80 - camera.position.x) * 0.015;
-      camera.position.y += (mouse.y * 50 - camera.position.y) * 0.015;
-      camera.lookAt(scene.position);
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    function onResize() {
-      if (!el) return;
-      camera.aspect = el.clientWidth / el.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(el.clientWidth, el.clientHeight);
-    }
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      cancelAnimationFrame(frameRef.current);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-      if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
-    };
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={revealed ? "icon-revealed" : ""}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: "absolute",
+        left: x,
+        top: y,
+        width: size,
+        height: size,
+        color,
+        opacity: revealed ? (hover ? 0.5 : 0.22) : 0,
+        transform: revealed
+          ? `scale(${hover ? 1.18 : 1})`
+          : "scale(0.5)",
+        transition: `opacity 1.2s ease ${delay}ms, transform 0.9s cubic-bezier(.34,1.56,.64,1) ${delay}ms, filter 0.3s ease`,
+        pointerEvents: "auto",
+        cursor: "default",
+        filter: hover ? `drop-shadow(0 0 16px ${color}90)` : "none",
+      }}
+    >
+      <Icon />
+    </div>
+  );
+}
+
+/* ── Floating dots for subtle ambiance ── */
+
+interface Dot {
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  duration: number;
+  delayMs: number;
+}
+
+function makeAmbientDots(count: number): Dot[] {
+  const colors = ["#7c5cff", "#06b6d4", "#a78bfa", "#22d3ee"];
+  const dots: Dot[] = [];
+  for (let i = 0; i < count; i++) {
+    dots.push({
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 2 + Math.random() * 3,
+      color: colors[i % colors.length],
+      duration: 4 + Math.random() * 6,
+      delayMs: Math.random() * 5000,
+    });
+  }
+  return dots;
+}
+
+/* ── Main component ── */
+
+export default function ParticleField() {
+  const [dots] = useState(() => makeAmbientDots(30));
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollY, setScrollY] = useState(0);
+
+  const onScroll = useCallback(() => {
+    setScrollY(window.scrollY);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [onScroll]);
+
+  const parallaxOffset = scrollY * 0.08;
 
   return (
     <div
@@ -262,7 +266,62 @@ export default function ParticleField() {
         inset: 0,
         zIndex: 0,
         pointerEvents: "none",
+        overflow: "hidden",
       }}
-    />
+    >
+      {/* CSS for stroke-draw + pulse animations */}
+      <style>{`
+        .svg-reveal-path {
+          stroke-dasharray: 1200;
+          stroke-dashoffset: 1200;
+          transition: stroke-dashoffset 2s ease;
+        }
+        .icon-revealed .svg-reveal-path {
+          stroke-dashoffset: 0;
+        }
+        @keyframes float-y {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .icon-revealed svg {
+          animation: float-y 6s ease-in-out infinite;
+        }
+        @keyframes dot-pulse {
+          0%, 100% { opacity: 0.15; transform: scale(1); }
+          50% { opacity: 0.45; transform: scale(1.5); }
+        }
+      `}</style>
+
+      {/* Ambient pulsing dots */}
+      {dots.map((d, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${d.x}%`,
+            top: `${d.y}%`,
+            width: d.size,
+            height: d.size,
+            borderRadius: "50%",
+            backgroundColor: d.color,
+            animation: `dot-pulse ${d.duration}s ease-in-out ${d.delayMs}ms infinite`,
+            transform: `translateY(${-parallaxOffset}px)`,
+          }}
+        />
+      ))}
+
+      {/* SVG icon collection */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          transform: `translateY(${-parallaxOffset}px)`,
+        }}
+      >
+        {ICONS.map((icon, i) => (
+          <RevealIcon key={i} {...icon} />
+        ))}
+      </div>
+    </div>
   );
 }
