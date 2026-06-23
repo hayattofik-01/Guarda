@@ -620,12 +620,28 @@ label {
   max-width: 1080px;
   margin: 0 auto;
   padding: 0 22px 60px;
+  position: relative;
+  z-index: 1;
 }
 .lp-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 22px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background 0.3s, backdrop-filter 0.3s, padding 0.3s;
+}
+.lp-nav-scrolled {
+  background: rgba(10, 6, 19, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 14px 0;
+  margin: 0 -22px;
+  padding-left: 22px;
+  padding-right: 22px;
+  border-bottom: 1px solid rgba(45, 33, 80, 0.5);
 }
 .lp-nav-actions {
   display: flex;
@@ -635,13 +651,35 @@ label {
 .lp-link {
   color: var(--muted);
   font-weight: 600;
+  transition: color 0.2s;
 }
 .lp-link:hover {
   color: var(--text);
 }
+
+/* ── Glowing CTA button ── */
+.btn-glow {
+  position: relative;
+  box-shadow: 0 0 20px rgba(124, 92, 255, 0.4), 0 0 60px rgba(124, 92, 255, 0.15);
+  transition: box-shadow 0.3s, transform 0.2s;
+}
+.btn-glow:hover {
+  box-shadow: 0 0 30px rgba(124, 92, 255, 0.6), 0 0 80px rgba(124, 92, 255, 0.25);
+  transform: translateY(-1px);
+}
+.btn-hero {
+  display: inline-block;
+  height: 52px;
+  line-height: 34px;
+  font-size: 16px;
+  padding: 9px 32px;
+  letter-spacing: 0.3px;
+}
+
+/* ── Hero ── */
 .lp-hero {
   text-align: center;
-  padding: 56px 0 40px;
+  padding: 72px 0 40px;
 }
 .lp-eyebrow {
   text-transform: uppercase;
@@ -652,57 +690,87 @@ label {
   margin-bottom: 18px;
 }
 .lp-hero h1 {
-  font-size: 46px;
+  font-size: 50px;
   line-height: 1.08;
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   font-weight: 800;
 }
 .lp-grad {
-  background: linear-gradient(90deg, #a78bfa, #7c5cff);
+  background: linear-gradient(90deg, #a78bfa, #7c5cff, #6d28d9);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: gradientShift 4s ease infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
 }
 .lp-lede {
-  max-width: 640px;
-  margin: 0 auto 28px;
-  font-size: 17px;
+  max-width: 680px;
+  margin: 0 auto 32px;
+  font-size: 18px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.65;
 }
-.lp-domain {
-  display: flex;
-  gap: 10px;
-  max-width: 480px;
-  margin: 0 auto;
+.lp-lede strong {
+  color: var(--text);
 }
-.lp-domain input {
-  height: 46px;
-  font-size: 15px;
-}
-.lp-domain .btn {
-  white-space: nowrap;
-  padding: 0 20px;
+.lp-hero-cta {
+  text-align: center;
+  margin-bottom: 36px;
 }
 .lp-trust {
   margin-top: 14px;
   font-size: 13px;
   color: var(--muted);
 }
+
+/* ── Metrics strip ── */
+.lp-metrics {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding: 28px 0 0;
+  border-top: 1px solid var(--border);
+  max-width: 620px;
+  margin: 0 auto;
+}
+.lp-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.lp-metric-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent-2);
+}
+.lp-metric-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Sections ── */
 .lp-section {
-  padding: 46px 0;
+  padding: 56px 0;
 }
 .lp-band {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 44px 36px;
+  padding: 48px 36px;
 }
 .lp-h2 {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 800;
   text-align: center;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
 }
 .lp-h2.lp-left {
   text-align: left;
@@ -713,12 +781,17 @@ label {
   max-width: 680px;
   margin: 0 auto 28px;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
+}
+.lp-sub strong {
+  color: var(--text);
 }
 .lp-sub.lp-left {
   text-align: left;
   margin-left: 0;
 }
+
+/* ── Grid and cards ── */
 .lp-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -728,7 +801,19 @@ label {
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 22px;
+  padding: 24px;
+}
+.lp-card-hover {
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.lp-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 30px rgba(124, 92, 255, 0.12);
+}
+.lp-card-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
 }
 .lp-card h3 {
   margin: 0 0 8px;
@@ -739,6 +824,8 @@ label {
   color: var(--muted);
   line-height: 1.55;
 }
+
+/* ── Leaks ── */
 .lp-leaks {
   max-width: 720px;
   margin: 0 auto;
@@ -746,14 +833,30 @@ label {
   list-style: none;
 }
 .lp-leaks li {
-  padding: 14px 18px;
+  padding: 16px 20px;
   margin-bottom: 10px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: 10px;
   font-size: 15px;
+  transition: transform 0.2s, border-color 0.2s;
 }
+.lp-leaks li:hover {
+  transform: translateX(6px);
+  border-left-color: var(--critical);
+}
+.lp-leak-text {
+  font-weight: 600;
+  color: var(--text);
+}
+.lp-leak-detail {
+  color: var(--muted);
+  font-size: 13px;
+  margin-left: 6px;
+}
+
+/* ── Steps ── */
 .lp-step {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -764,13 +867,15 @@ label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
   font-weight: 700;
+  font-size: 15px;
   margin-bottom: 14px;
+  box-shadow: 0 0 16px rgba(124, 92, 255, 0.3);
 }
 .lp-step h3 {
   margin: 0 0 8px;
@@ -801,6 +906,11 @@ label {
   color: var(--muted);
   line-height: 1.55;
 }
+.lp-score-body strong {
+  color: var(--text);
+}
+
+/* ── Two-col layout ── */
 .lp-two {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -821,54 +931,64 @@ label {
   font-size: 14px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
-.lp-pricing {
+
+/* ── Comparison table ── */
+.lp-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  max-width: 760px;
+  max-width: 700px;
   margin: 0 auto;
 }
-.lp-price-card {
-  background: var(--panel-2);
+.lp-compare-col {
+  border-radius: 14px;
+  padding: 24px;
+}
+.lp-compare-them {
+  background: rgba(30, 20, 56, 0.5);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 26px;
+  opacity: 0.8;
 }
-.lp-price-card.lp-us {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+.lp-compare-us {
+  background: rgba(124, 92, 255, 0.08);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 24px rgba(124, 92, 255, 0.12);
 }
-.lp-price-name {
+.lp-compare-head {
   font-weight: 700;
-  margin-bottom: 8px;
-}
-.lp-price-amt {
-  font-size: 34px;
-  font-weight: 800;
-  margin-bottom: 14px;
-}
-.lp-price-amt span {
   font-size: 15px;
-  color: var(--muted);
-  font-weight: 500;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.lp-price-card ul {
+.lp-compare-them .lp-compare-head {
+  color: var(--muted);
+}
+.lp-compare-us .lp-compare-head {
+  color: var(--accent-2);
+}
+.lp-compare-col ul {
+  margin: 0;
   padding-left: 18px;
-  margin: 0 0 18px;
+  line-height: 2;
+}
+.lp-compare-them ul {
   color: var(--muted);
-  line-height: 1.7;
 }
-.lp-them {
-  opacity: 0.85;
+.lp-compare-us ul {
+  color: var(--text);
 }
+
+/* ── Final CTA ── */
 .lp-final {
   text-align: center;
-  padding: 64px 0 30px;
+  padding: 72px 0 30px;
 }
 .lp-final h2 {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 800;
-  margin: 0 0 24px;
+  margin: 0 0 28px;
+  line-height: 1.2;
 }
 .lp-footer {
   display: flex;
@@ -882,11 +1002,14 @@ label {
 }
 @media (max-width: 760px) {
   .lp-two,
-  .lp-pricing {
+  .lp-compare {
     grid-template-columns: 1fr;
   }
   .lp-hero h1 {
     font-size: 34px;
+  }
+  .lp-metrics {
+    gap: 24px;
   }
 }
 
@@ -903,6 +1026,11 @@ label {
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.lp-video:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 .lp-video video,
 .lp-video iframe {
@@ -930,17 +1058,11 @@ label {
   max-width: 620px;
   margin: 0 auto;
 }
-.lp-demo .btn {
-  display: inline-block;
-  height: 46px;
-  line-height: 28px;
-  font-size: 15px;
-  padding: 9px 26px;
-}
 .lp-demo-note {
   margin-top: 14px;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.5;
 }
 
 /* ===== Scanning animation ===== */
