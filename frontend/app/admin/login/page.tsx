@@ -43,7 +43,7 @@ export default function LoginPage() {
           <span className="dot" /> Guarda
         </div>
         <p className="muted" style={{ marginTop: 0 }}>
-          Sign in to your Guarda dashboard.
+          Admin access only.
         </p>
         <form onSubmit={onSubmit}>
           <div className="field">

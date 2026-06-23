@@ -25,9 +25,9 @@ const NIGHTMARES = [
     body: "You're two calls from closing a six-figure contract. They send a security questionnaire. You can't answer it. They ghost. Game over.",
   },
   {
-    icon: "⚖️",
-    title: "A GDPR fine lands on your desk",
-    body: "A regulator found something publicly visible about your company — before you did. The fine starts at €10 million or 2% of annual turnover, whichever is higher.",
+    icon: "🕵️",
+    title: "Your staging server is wide open — and indexed",
+    body: "A forgotten subdomain with admin access, no auth, and real user data. Google found it before you did. So did someone else.",
   },
 ];
 
@@ -61,7 +61,7 @@ const SOCIAL_PROOF = [
   { metric: "40s", label: "average scan time" },
   { metric: "A–F", label: "one-glance score" },
   { metric: "0", label: "security engineers needed" },
-  { metric: "GDPR", label: "Cala-verified compliance" },
+  { metric: "24/7", label: "continuous monitoring" },
 ];
 
 export default function Landing() {
@@ -94,7 +94,7 @@ export default function Landing() {
             </Link>
           ) : (
             <>
-              <Link className="lp-link" href="/login">
+              <Link className="lp-link" href="/admin/login">
                 Sign in
               </Link>
               <a className="btn btn-glow" href={DEMO_URL}>
@@ -222,7 +222,7 @@ export default function Landing() {
         <FadeInSection>
           <h2 className="lp-h2">See it in action</h2>
           <p className="lp-sub">
-            Real scans. Real reports. Verified GDPR compliance powered by Cala&apos;s knowledge graph.
+            Real scans. Real reports. Plain-English fixes you can act on today.
           </p>
         </FadeInSection>
         <FadeInSection delay={150}>
@@ -242,7 +242,7 @@ export default function Landing() {
               </video>
               <div className="lp-video-cap">
                 <strong>2 · Get your score &amp; report</strong>
-                <span>An A–F grade, plain-English fixes, and a Cala-verified GDPR check.</span>
+                <span>An A–F grade with plain-English fixes and actionable next steps.</span>
               </div>
             </div>
           </div>

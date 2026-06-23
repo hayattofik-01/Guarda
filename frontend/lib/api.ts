@@ -38,8 +38,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (res.status === 401) {
     clearToken();
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      window.location.href = "/login";
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin/login")) {
+      window.location.href = "/admin/login";
     }
   }
   if (!res.ok) {
@@ -70,14 +70,6 @@ export async function login(email: string, password: string) {
     method: "POST",
     body,
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  });
-  setToken(data.access_token);
-}
-
-export async function register(email: string, password: string) {
-  const data = await request<{ access_token: string }>("/api/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
   });
   setToken(data.access_token);
 }

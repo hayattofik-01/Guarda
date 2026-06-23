@@ -9,7 +9,7 @@ const STEPS = [
   "Probing which hosts are live",
   "Checking for exposed files & misconfigurations",
   "Harvesting leaked emails & secrets",
-  "Verifying the organisation with Cala AI",
+  "Analysing exposed services & configurations",
   "Scoring your external posture A–F",
 ];
 
@@ -26,7 +26,7 @@ export default function ScanningPage() {
     started.current = true;
 
     if (!getToken()) {
-      router.replace("/login");
+      router.replace("/admin/login");
       return;
     }
     const pending =

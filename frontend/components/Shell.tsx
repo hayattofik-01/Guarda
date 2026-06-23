@@ -20,7 +20,7 @@ export default function Shell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!getToken()) {
-      router.replace("/login");
+      router.replace("/admin/login");
       return;
     }
     api
@@ -29,7 +29,7 @@ export default function Shell({ children }: { children: ReactNode }) {
         setEmail(u.email);
         setReady(true);
       })
-      .catch(() => router.replace("/login"));
+      .catch(() => router.replace("/admin/login"));
   }, [router]);
 
   if (!ready) {
@@ -70,7 +70,7 @@ export default function Shell({ children }: { children: ReactNode }) {
             style={{ width: "100%" }}
             onClick={() => {
               clearToken();
-              router.replace("/login");
+              router.replace("/admin/login");
             }}
           >
             Sign out
