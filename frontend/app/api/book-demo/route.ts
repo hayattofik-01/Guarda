@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const resend = new Resend(apiKey);
 
-    await resend.emails.send({
+    const { data, error: sendError } = await resend.emails.send({
       from: "Guarda Demo <onboarding@resend.dev>",
       to: "hayattofik22@gmail.com",
       subject: `New Demo Request from ${name}`,
@@ -33,7 +33,12 @@ export async function POST(request: Request) {
       replyTo: email,
     });
 
-    return NextResponse.json({ success: true });
+    if (sendError) {
+      console.error("Resend error:", sendError);
+      return NextResponse.json({ error: sendError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, id: data?.id });
   } catch (error) {
     console.error("Email send error:", error);
     return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
