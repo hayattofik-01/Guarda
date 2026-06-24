@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     await resend.emails.send({
       from: "Guarda Demo <onboarding@resend.dev>",
-      to: "hayatttofik22@gmail.com",
+      to: "hayattofik22@gmail.com",
       subject: `New Demo Request from ${name}`,
       html: `
         <h2>New Demo Booking</h2>
