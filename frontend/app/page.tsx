@@ -5,13 +5,11 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { getToken } from "@/lib/api";
 import FadeInSection from "@/components/FadeInSection";
+import BookDemoModal from "@/components/BookDemoModal";
 
 const ParticleField = dynamic(() => import("@/components/ParticleField"), {
   ssr: false,
 });
-
-const DEMO_URL =
-  "mailto:founders@guarda.app?subject=Book%20a%20Guarda%20demo&body=Hi%20Guarda%20team%2C%20I%27d%20like%20to%20book%20a%20demo.%20My%20company%20domain%20is%3A";
 
 const NIGHTMARES = [
   {
@@ -66,6 +64,7 @@ const SOCIAL_PROOF = [
 
 export default function Landing() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -97,9 +96,9 @@ export default function Landing() {
               <Link className="lp-link" href="/admin/login">
                 Sign in
               </Link>
-              <a className="btn btn-glow" href={DEMO_URL}>
+              <button className="btn btn-glow" onClick={() => setDemoOpen(true)}>
                 Book a demo
-              </a>
+              </button>
             </>
           )}
         </div>
@@ -123,9 +122,9 @@ export default function Landing() {
         </FadeInSection>
         <FadeInSection delay={200}>
           <div className="lp-hero-cta">
-            <a className="btn btn-hero btn-glow" href={DEMO_URL}>
+            <button className="btn btn-hero btn-glow" onClick={() => setDemoOpen(true)}>
               Book a live demo →
-            </a>
+            </button>
             <div className="lp-trust">We&apos;ll scan your actual domain on the call. 20 minutes. No commitment.</div>
           </div>
         </FadeInSection>
@@ -350,9 +349,9 @@ export default function Landing() {
             <span className="lp-grad">Book your live demo today.</span>
           </h2>
           <div className="lp-demo">
-            <a className="btn btn-hero btn-glow" href={DEMO_URL}>
+            <button className="btn btn-hero btn-glow" onClick={() => setDemoOpen(true)}>
               Book a demo →
-            </a>
+            </button>
             <div className="lp-demo-note">
               A 20-minute call. We&apos;ll scan your domain live and walk you through the report.
               No commitment. No credit card.
@@ -360,6 +359,8 @@ export default function Landing() {
           </div>
         </FadeInSection>
       </section>
+
+      <BookDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
 
       <footer className="lp-footer">
         <span>Guarda — We watch. We detect. We guide.</span>
