@@ -204,14 +204,29 @@ export default function Landing() {
           ))}
         </div>
         <FadeInSection delay={400}>
-          <div className="lp-score-demo">
-            <div className="grade-badge grade-F">F</div>
-            <div>
-              <div className="lp-score-title">Your external security score</div>
-              <p className="lp-score-body">
-                One letter. Updated every scan. This company had a leaked AWS key visible in a public
-                job post for three months. <strong>Guarda found it in 40 seconds.</strong>
-              </p>
+          <div className="lp-score-journey">
+            <div className="lp-score-title">Watch the score transform</div>
+            <p className="lp-score-sub">
+              Real startup. Real results. Every fix takes minutes — not meetings.
+            </p>
+            <div className="lp-score-timeline">
+              <div className="lp-score-step">
+                <div className="grade-badge grade-F">F</div>
+                <span className="lp-score-label">Day 1</span>
+                <span className="lp-score-detail">3 leaked keys, open staging, no headers</span>
+              </div>
+              <div className="lp-score-arrow">→</div>
+              <div className="lp-score-step">
+                <div className="grade-badge grade-C">C</div>
+                <span className="lp-score-label">Day 3</span>
+                <span className="lp-score-detail">Keys rotated, staging locked down</span>
+              </div>
+              <div className="lp-score-arrow">→</div>
+              <div className="lp-score-step">
+                <div className="grade-badge grade-A">A</div>
+                <span className="lp-score-label">Day 7</span>
+                <span className="lp-score-detail">Enterprise-ready. Deal closed.</span>
+              </div>
             </div>
           </div>
         </FadeInSection>
